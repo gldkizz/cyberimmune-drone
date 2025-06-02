@@ -38,13 +38,13 @@ int initAutopilotConnector() {
         sleep(1);
     }
 
-    char boardName[NAME_MAX_LENGTH + 1] = {0};
+    char boardName[NAME_MAX_LENGTH] = {0};
     if (KnHalGetEnv("board", boardName, sizeof(boardName)) != rcOk) {
         logEntry("Failed to get board name", ENTITY_NAME, LogLevel::LOG_ERROR);
         return 0;
     }
 
-    char autopilotConfig[NAME_MAX_LENGTH + 1] = {0};
+    char autopilotConfig[NAME_MAX_LENGTH] = {0};
     if (snprintf(autopilotConfig, NAME_MAX_LENGTH, "%s.%s", boardName, autopilotConfigSuffix) < 0) {
         logEntry("Failed to generate UART config name", ENTITY_NAME, LogLevel::LOG_ERROR);
         return 0;

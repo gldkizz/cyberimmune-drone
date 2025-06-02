@@ -76,3 +76,10 @@ int setKillSwitch(bool enable);
  * \return Возвращает 1, если режим был успешно установлен, иначе -- 0.
  */
 int setCargoLock(bool enable);
+/**
+ * \~English Tries to read an RFID tag
+ * \return Returns 1 if read try was performed, 0 otherwise.
+ * \~Russian Производит попоытку считать RFID-метку.
+ * \return Возвращает 1, если попытка была произведена, иначе -- 0.
+ */
+int readRfid();

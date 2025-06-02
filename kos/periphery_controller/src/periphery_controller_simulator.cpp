@@ -165,3 +165,7 @@ int setCargoLock(bool enable) {
 
     return 1;
 }
+
+int readRfid() {
+    return 1;
+}

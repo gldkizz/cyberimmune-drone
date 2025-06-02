@@ -28,6 +28,7 @@ request {
     match dst=kl.drivers.UART {
         match src=drone_controller.AutopilotConnector { grant () }
         match src=drone_controller.NavigationSystem { grant () }
+        match src=drone_controller.PeripheryController { grant () }
     }
     match dst=kl.VfsSdCardFs {
         match src=drone_controller.CredentialManager { grant () }
@@ -62,6 +63,7 @@ response {
     match src=kl.drivers.UART {
         match dst=drone_controller.AutopilotConnector { grant () }
         match dst=drone_controller.NavigationSystem { grant () }
+        match dst=drone_controller.PeripheryController { grant () }
     }
     match src=kl.VfsSdCardFs {
         match dst=drone_controller.CredentialManager { grant () }
