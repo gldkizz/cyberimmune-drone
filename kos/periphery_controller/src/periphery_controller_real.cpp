@@ -196,7 +196,8 @@ int setCargoLock(bool enable) {
     return setPin(pinCargoLock, enable);
 }
 
-int readRfid() {
+int readRfid(uint8_t &foundTag) {
+    foundTag = 0;
     char logBuffer[256] = {0};
     rtl_size_t writtenBytes, readBytes;
     uint8_t scanRequest[] = { 0xBB, 0x00, 0x22, 0x00, 0x00, 0x22, 0x7E };
@@ -245,6 +246,7 @@ int readRfid() {
                 scanResponse[8], scanResponse[9], scanResponse[10], scanResponse[11], scanResponse[12], scanResponse[13],
                 scanResponse[14], scanResponse[15], scanResponse[16], scanResponse[17], scanResponse[18], scanResponse[19]);
             logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_INFO);
+            foundTag = 1;
 
             return 1;
         }

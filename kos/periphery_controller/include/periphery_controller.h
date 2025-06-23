@@ -77,9 +77,11 @@ int setKillSwitch(bool enable);
  */
 int setCargoLock(bool enable);
 /**
- * \~English Tries to read an RFID tag
- * \return Returns 1 if read try was performed, 0 otherwise.
- * \~Russian Производит попоытку считать RFID-метку.
+ * \~English Tries to read an RFID tag.
+ * \param[out] foundTag Result of performed RFID tag scan.
+ * \return Returns 1 if scan attempt was successful, 0 otherwise.
+ * \~Russian Производит попытку считать RFID-метку.
+ * \param[out] foundTag Результат чтения RFID-метки.
  * \return Возвращает 1, если попытка была произведена, иначе -- 0.
  */
-int readRfid();
+int readRfid(uint8_t &foundTag);

@@ -30,3 +30,11 @@ nk_err_t SetCargoLockImpl(struct PeripheryControllerInterface *self,
 
     return NK_EOK;
 }
+
+nk_err_t ScanRfidImpl(struct PeripheryControllerInterface *self,
+                    const PeripheryControllerInterface_ScanRfid_req *req, const struct nk_arena *reqArena,
+                    PeripheryControllerInterface_ScanRfid_res *res, struct nk_arena *resArena) {
+    res->success = readRfid(res->tagFound);
+
+    return NK_EOK;
+}

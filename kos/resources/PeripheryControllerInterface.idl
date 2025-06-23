@@ -4,4 +4,5 @@ interface {
     EnableBuzzer(out UInt8 success);
     SetKillSwitch(in UInt8 enable, out UInt8 success);
     SetCargoLock(in UInt8 enable, out UInt8 success);
+    ScanRfid(out UInt8 tagFound, out UInt8 success);
 }

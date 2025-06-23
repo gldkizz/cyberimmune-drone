@@ -166,6 +166,8 @@ int setCargoLock(bool enable) {
     return 1;
 }
 
-int readRfid() {
+int readRfid(uint8_t &foundTag) {
+    foundTag = 0;
+
     return 1;
 }
