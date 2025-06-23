@@ -33,3 +33,12 @@ int setKillSwitch(uint8_t enable);
  * \return Возвращает 1, если режим был успешно установлен, иначе -- 0.
  */
 int setCargoLock(uint8_t enable);
+/**
+ * \~English Performs RFID tag scan for a short period of time.
+ * \param[out] scanResult Result of scan: 1 if tag was read, 0 otherwise.
+ * \return Returns 1 on successful attempt (no matter if tag was found or not), 0 otherwise.
+ * \~Russian Производит поиск RFID-метки в течение короткого промежутка времени.
+ * \param[out] scanResult Результат сканирования метки: 1, если метка была найдена, иначе -- 0.
+ * \return Возвращает 1, если сканирование было проведено (неважно, была ли найдена метка), иначе -- 0.
+ */
+int scanRfid(uint8_t &scanResult);
