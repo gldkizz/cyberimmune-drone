@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <string.h>
 
 #define NK_USE_UNQUALIFIED_NAMES
 #include <drone_controller/PeripheryController.edl.h>
@@ -167,42 +168,13 @@ int setBuzzer(bool enable) {
     return setPin(pinBuzzer, enable);
 }
 
-int setKillSwitch(bool enable) {
-    if (enable) {
-        if (!publishMessage("api/events", "type=kill_switch&event=Kill-switch is enabled"))
-                logEntry("Failed to publish event message", ENTITY_NAME, LogLevel::LOG_WARNING);
-        if (!setPin(pinKillSwitchFirst, false) || !setPin(pinKillSwitchSecond, true))
-            return 0;
-        else {
-            killSwitchEnabled = true;
-            return 1;
-        }
-    }
-    else {
-        if (!publishMessage("api/events", "type=kill_switch&event=Kill-switch is disabled"))
-                logEntry("Failed to publish event message", ENTITY_NAME, LogLevel::LOG_WARNING);
-        if (!setPin(pinKillSwitchFirst, false) || !setPin(pinKillSwitchSecond, false))
-            return 0;
-        else {
-            killSwitchEnabled = false;
-            return 1;
-        }
-    }
-}
-
-int setCargoLock(bool enable) {
-    if (!publishMessage("api/events", enable ? "type=cargo_lock&event=Cargo lock is enabled" : "type=kill_switch&event=Cargo lock is disabled"))
-        logEntry("Failed to publish event message", ENTITY_NAME, LogLevel::LOG_WARNING);
-    return setPin(pinCargoLock, enable);
-}
-
-int readRfid(uint8_t &foundTag) {
-    foundTag = 0;
+int readRfid(char* tag) {
     char logBuffer[256] = {0};
     rtl_size_t writtenBytes, readBytes;
     uint8_t scanRequest[] = { 0xBB, 0x00, 0x22, 0x00, 0x00, 0x22, 0x7E };
     uint8_t noRfidResponse[] = { 0xBB, 0x01, 0xFF, 0x00, 0x01, 0x15, 0x16, 0x7E };
     uint8_t scanResponse[24] = {0};
+    strcpy(tag, "");
 
     for (int i = 0; i < 50; i++) {
         Retcode rc = UartWrite(rfidUartHandler, scanRequest, 7, NULL, &writtenBytes);
@@ -242,16 +214,38 @@ int readRfid(uint8_t &foundTag) {
                 return 0;
             }
 
-            snprintf(logBuffer, 256, "Read RFID '%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x'",
-                scanResponse[8], scanResponse[9], scanResponse[10], scanResponse[11], scanResponse[12], scanResponse[13],
-                scanResponse[14], scanResponse[15], scanResponse[16], scanResponse[17], scanResponse[18], scanResponse[19]);
+            snprintf(tag, 36, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x", scanResponse[8], scanResponse[9],
+                scanResponse[10], scanResponse[11], scanResponse[12], scanResponse[13], scanResponse[14], scanResponse[15],
+                scanResponse[16], scanResponse[17], scanResponse[18], scanResponse[19]);
+            snprintf(logBuffer, 256, "Read RFID '%s'", tag);
             logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_INFO);
-            foundTag = 1;
-
             return 1;
         }
     }
 
     logEntry("No RFID was read", ENTITY_NAME, LogLevel::LOG_INFO);
     return 1;
+}
+
+int setKillSwitch(bool enable) {
+    if (enable) {
+        if (!setPin(pinKillSwitchFirst, false) || !setPin(pinKillSwitchSecond, true))
+            return 0;
+        else {
+            killSwitchEnabled = true;
+            return 1;
+        }
+    }
+    else {
+        if (!setPin(pinKillSwitchFirst, false) || !setPin(pinKillSwitchSecond, false))
+            return 0;
+        else {
+            killSwitchEnabled = false;
+            return 1;
+        }
+    }
+}
+
+int setCargoLock(bool enable) {
+    return setPin(pinCargoLock, enable);
 }

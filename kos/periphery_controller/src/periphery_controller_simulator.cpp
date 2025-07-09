@@ -147,6 +147,11 @@ int setBuzzer(bool enable) {
     return 1;
 }
 
+int readRfid(char* tag) {
+    strcpy(tag, "");
+    return 1;
+}
+
 int setKillSwitch(bool enable) {
     SimPeripheryMessage message = SimPeripheryMessage(enable ? SimPeripheryCommand::MotorPermit : SimPeripheryCommand::MotorForbid);
     write(peripherySocket, &message, sizeof(SimPeripheryMessage));
@@ -162,12 +167,6 @@ int setCargoLock(bool enable) {
     write(peripherySocket, &message, sizeof(SimPeripheryMessage));
     if (!publishMessage("api/events", enable ? "type=cargo_lock&event=Cargo lock is enabled" : "type=kill_switch&event=Cargo lock is disabled"))
         logEntry("Failed to publish event message", ENTITY_NAME, LogLevel::LOG_WARNING);
-
-    return 1;
-}
-
-int readRfid(uint8_t &foundTag) {
-    foundTag = 0;
 
     return 1;
 }
