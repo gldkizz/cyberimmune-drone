@@ -13,13 +13,16 @@
 
 #include "../include/periphery_controller.h"
 #include "../../shared/include/ipc_messages_server_connector.h"
+#include "../../shared/include/ipc_messages_navigation_system.h"
 
 #include <kos_net.h>
 
 #include <stdio.h>
+#include <math.h>
 
 /** \cond */
 #define SIM_PERIPHERY_MESSAGE_HEAD_SIZE 4
+#define RFID_TAG_NUM 10
 
 static const uint8_t SimPeripheryMessageHead[SIM_PERIPHERY_MESSAGE_HEAD_SIZE] = { 0x06, 0x66, 0xbe, 0xa7 };
 /** \endcond */
@@ -100,6 +103,13 @@ struct SimPeripheryMessage {
 int peripherySocket = NULL;
 uint16_t peripheryPort = 5767;
 
+float scanSquaredDistance = 0.25;
+float latScale = 0.011131884502145f;
+float lngScale = 0.011131884502145f;
+int32_t rfidLats[RFID_TAG_NUM] = { 600025652, 600025921, 600026011, 600025652, 600026191, 600026370, 600026280, 600026550, 600026775, 600026640 };
+int32_t rfidLngs[RFID_TAG_NUM] = { 278574262, 278574082, 278574801, 278575340, 278575340, 278574891, 278574082, 278574352, 278574082, 278575340 };
+char rfidIDs[RFID_TAG_NUM][6] = { "rfid0", "rfid1", "rfid2", "rfid3", "rfid4", "rfid5", "rfid6", "rfid7", "rfid8", "rfid9" };
+
 bool killSwitchEnabled;
 /** \endcond */
 
@@ -108,6 +118,14 @@ int initPeripheryController() {
         logEntry("Connection to network has failed", ENTITY_NAME, LogLevel::LOG_ERROR);
         return 0;
     }
+
+    float avgLat = 0;
+    for (int i = 0; i < RFID_TAG_NUM; i++)
+        avgLat += 1.0f * rfidLats[i] / RFID_TAG_NUM;
+    float scale = cos(avgLat * 1.0e-7 * M_PI / 180.0f);
+    if (scale < 0.01f)
+        scale = 0.01f;
+    lngScale *= scale;
 
     return 1;
 }
@@ -148,6 +166,21 @@ int setBuzzer(bool enable) {
 }
 
 int readRfid(char* tag) {
+    int32_t lat, lng, alt;
+    getCoords(lat, lng, alt);
+
+    float latDif, lngDif;
+    float altSquaredDif = (alt * alt) / 10000.0f;
+    for (int i = 0; i < RFID_TAG_NUM; i++) {
+        latDif = (rfidLats[i] - lat) * latScale;
+        lngDif = (rfidLngs[i] - lng) * lngScale;
+
+        if (latDif * latDif + lngDif * lngDif + altSquaredDif  < scanSquaredDistance) {
+            strcpy(tag, rfidIDs[i]);
+            return 1;
+        }
+    }
+
     strcpy(tag, "");
     return 1;
 }

@@ -19,6 +19,7 @@ add_dependencies (PeripheryController periphery_controller_edl_files)
 target_compile_definitions (PeripheryController PRIVATE ENTITY_NAME="Periphery Controller")
 
 if (SIMULATION)
+    target_sources (PeripheryController PUBLIC "../shared/src/ipc_messages_navigation_system.cpp")
     target_compile_definitions (PeripheryController PRIVATE SIMULATOR_IP="${SIMULATOR_IP}")
     target_link_libraries (PeripheryController ${vfs_CLIENT_LIB})
 else ()
