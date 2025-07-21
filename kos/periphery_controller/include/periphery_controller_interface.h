@@ -54,12 +54,21 @@ nk_err_t SetCargoLockImpl(struct PeripheryControllerInterface *self,
                     PeripheryControllerInterface_SetCargoLock_res *res, struct nk_arena *resArena);
 
 /**
+ * \~English IPC message handler. See \ref scanRfid.
+ * \~Russian Обработчик IPC-сообщения. См. \ref scanRfid.
+ */
+nk_err_t ScanRfidImpl(struct PeripheryControllerInterface *self,
+                    const PeripheryControllerInterface_ScanRfid_req *req, const struct nk_arena *reqArena,
+                    PeripheryControllerInterface_ScanRfid_res *res, struct nk_arena *resArena);
+
+/**
  * \~English Creates an PeripheryControllerInterface C++ interface and maps its methods to IPC message handlers.
  * \~Russian Создает C++ интерфейс PeripheryControllerInterface и сопоставляет его методы с обработчиками IPC-сообщений.
  */
 static struct PeripheryControllerInterface *CreatePeripheryControllerInterfaceImpl(void) {
     static const struct PeripheryControllerInterface_ops Ops = {
-        .EnableBuzzer = EnableBuzzerImpl, .SetKillSwitch = SetKillSwitchImpl, .SetCargoLock = SetCargoLockImpl
+        .EnableBuzzer = EnableBuzzerImpl, .SetKillSwitch = SetKillSwitchImpl, .SetCargoLock = SetCargoLockImpl,
+        .ScanRfid = ScanRfidImpl
     };
 
     static PeripheryControllerInterface obj = {

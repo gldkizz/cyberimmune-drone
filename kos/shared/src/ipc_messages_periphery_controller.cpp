@@ -57,3 +57,22 @@ int setCargoLock(uint8_t enable) {
 
     return ((PeripheryControllerInterface_SetCargoLock(&proxy.base, &req, NULL, &res, NULL) == rcOk) && res.success);
 }
+
+int scanRfid(uint8_t &scanResult) {
+    NkKosTransport transport;
+    nk_iid_t riid;
+    initSenderInterface("periphery_controller_connection", "drone_controller.PeripheryController.interface", transport, riid);
+
+    struct PeripheryControllerInterface_proxy proxy;
+    PeripheryControllerInterface_proxy_init(&proxy, &transport.base, riid);
+
+    PeripheryControllerInterface_ScanRfid_req req;
+    PeripheryControllerInterface_ScanRfid_res res;
+
+    if ((PeripheryControllerInterface_ScanRfid(&proxy.base, &req, NULL, &res, NULL) != rcOk) || !res.success)
+        return 0;
+
+    scanResult = res.tagFound;
+
+    return 1;
+}

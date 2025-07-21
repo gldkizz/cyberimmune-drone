@@ -37,6 +37,7 @@ request {
     match dst=kl.drivers.UART {
         match src=drone_controller.AutopilotConnector { grant () }
         match src=drone_controller.NavigationSystem { grant () }
+        match src=drone_controller.PeripheryController { grant () }
     }
     match src=drone_controller.PeripheryController dst=kl.drivers.GPIO { grant () }
     match src=drone_controller.NavigationSystem dst=kl.drivers.I2C { grant () }
@@ -76,6 +77,7 @@ response {
     match src=kl.drivers.UART {
         match dst=drone_controller.AutopilotConnector { grant () }
         match dst=drone_controller.NavigationSystem { grant () }
+        match dst=drone_controller.PeripheryController { grant () }
     }
     match dst=drone_controller.PeripheryController src=kl.drivers.GPIO { grant () }
     match dst=drone_controller.NavigationSystem src=kl.drivers.I2C { grant () }
