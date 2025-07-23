@@ -53,6 +53,7 @@ COPY ./ardupilot /home/user/ardupilot
 COPY ./kos /home/user/kos
 COPY ./planner /home/user/planner
 COPY ./tests /home/user/tests
+COPY ./mavproxy_buttons /home/user/.local/lib/python3.10/site-packages/MAVProxy/modules/mavproxy_buttons
 
 RUN chown -R 1000:1000 /home/user
 
