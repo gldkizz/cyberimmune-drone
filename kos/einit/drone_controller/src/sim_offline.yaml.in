@@ -77,6 +77,8 @@ entities:
     id: logger_connection
   - target: drone_controller.ServerConnector
     id: server_connector_connection
+  - target: drone_controller.NavigationSystem
+    id: navigation_system_connection
 @INIT_PeripheryController_ENTITY_CONNECTIONS@
 
 - name: drone_controller.ServerConnector

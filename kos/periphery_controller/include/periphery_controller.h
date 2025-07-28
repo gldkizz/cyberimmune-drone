@@ -50,6 +50,16 @@ bool isKillSwitchEnabled();
 int setBuzzer(bool enable);
 
 /**
+ * \~English Scans an RFID tag.
+ * \param[out] tag Id of scanned tag. Empty line if tag was not read.
+ * \return Returns 1 if scan attempt was performed.
+ * \~Russian Сканируетс RFID-метку.
+ * \param[out] tag Идентификатор прочитанной метки. Пустая строка, если метка не была прочитана.
+ * \return Возвращает 1, если попытка сканирования была произведена.
+ */
+int readRfid(char* tag);
+
+/**
  * \~English Turns on the buzzer and then starts a separate process that will turn off
  * the buzzer after 2 seconds. The buzzer will not turn on if it has already been turned on with this method.
  * \return Returns 1 on successful turn on, 0 otherwise.
@@ -76,3 +86,12 @@ int setKillSwitch(bool enable);
  * \return Возвращает 1, если режим был успешно установлен, иначе -- 0.
  */
 int setCargoLock(bool enable);
+/**
+ * \~English Tries to read an RFID tag.
+ * \param[out] foundTag Result of performed RFID tag scan.
+ * \return Returns 1 if scan attempt was successful, 0 otherwise.
+ * \~Russian Производит попытку считать RFID-метку.
+ * \param[out] foundTag Результат попытки чтения RFID-метки.
+ * \return Возвращает 1, если попытка была произведена, иначе -- 0.
+ */
+int readRfid(uint8_t &foundTag);

@@ -43,3 +43,6 @@ echo "get mission: " $(curl -s "http://$HOST:$PORT/admin/get_mission?id=52:58:00
 # example answer: $OK
 echo "accept mission: " $(curl -s "http://$HOST:$PORT/admin/change_fly_accept?id=52:58:00:12:34:bb&decision=0&token=$TOKEN")
 
+# Zones upload POST
+echo "upload exampleAreas state: " $(curl -s -X POST -F "token=$TOKEN" -F "file=@/home/user/ardupilot/exampleAreas.json" "http://$HOST:$PORT/admin/import_forbidden_zones")
+

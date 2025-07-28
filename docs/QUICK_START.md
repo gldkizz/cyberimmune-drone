@@ -72,6 +72,8 @@ sudo apt-get remove modemmanager -y
 
 # Добавления пользователя user в нужные группы (если у вас другое имя пользователя, используйте его)
 sudo usermod -aG sudo,docker,dialout user
+
+# Перезагрузиться
 ```
 
 #### Запуск цифрового двойника

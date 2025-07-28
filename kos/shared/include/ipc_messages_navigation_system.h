@@ -34,9 +34,11 @@ int getCoords(int32_t &latitude, int32_t &longitude, int32_t &altitude);
 int getGpsInfo(float& dop, int32_t &sats);
 /**
  * \~English Returns estimated speed of the drone.
+ * \warning Deprecated for Local Navigation: always returns 0 m/s.
  * \param[out] speed Estimated speed in m/s.
  * \return Returns 1 on successful speed receive, 0 otherwise.
  * \~Russian Возвращает оцененную скорость дрона.
+ * \warning Функция не используется для локальной навигации: всегда возвращает 0 м/с.
  * \param[out] speed Оцененная скорость в м/с.
  * \return Возвращает 1, если скорость была успешно получена, иначе -- 0.
  */

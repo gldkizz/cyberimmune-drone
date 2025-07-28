@@ -463,7 +463,7 @@ void getSensors() {
             int32_t difLng = (int32_t)round((X / LATLON_TO_M) / lnsScale);
 
             setCoords(LNS_LAT + difLat, LNS_LNG + difLng);
-            setInfo(1.0, 4);
+            setInfo(1.0, 8);
 #endif
 #if ALT_SRC == 2
             setAltitude((int32_t)round(atof(zStr)));
