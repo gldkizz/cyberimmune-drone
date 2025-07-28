@@ -105,8 +105,8 @@ Docker Compose используется для автоматизации соз
 
 Используется оператором для задания миссии квадрокоптеру и контроля за выполнением миссии в графическом режиме.
 
-Демонстрация цифрового двойника с APM Planner 2.0 планировщиком на видео (youtube):
-[![Демонстрация цифрового двойника и имитатора ОрВД](https://img.youtube.com/vi/ytzJ13hsMwg/0.jpg)](https://www.youtube.com/watch?v=ytzJ13hsMwg&t=305)
+Демонстрация цифрового двойника с APM Planner 2.0 планировщиком на видео (rutube):
+[![Демонстрация цифрового двойника и имитатора ОрВД](https://pic.rutubelist.ru/video/ba/1e/ba1e0b25c597afe6254d21342a2cccfa.jpg?width=300)](https://rutube.ru/video/d0166c3937295543c060223d7ffbad26/?t=305&r=plwd)
 
 #### MAVProxy
 
@@ -124,8 +124,8 @@ mode auto
 long MAV_CMD_MISSION_START # можно ввести просто код команды 300
 ```
 
-Демонстрация цифрового двойника с MAVProxy планировщиком на видео (youtube):
-[![Цифровой двойник с MAVProxy планировщиком](https://img.youtube.com/vi/-VbmFeQ1A-Q/0.jpg)](https://www.youtube.com/watch?v=-VbmFeQ1A-Q)
+Демонстрация цифрового двойника с MAVProxy планировщиком на видео (rutube):
+[![Цифровой двойник с MAVProxy планировщиком](https://pic.rutubelist.ru/video/74/3a/743ab02ea77bd7d14ba096cfb912be26.jpg?width=300)](https://rutube.ru/video/1bfba08744878a5b12ffbd5017a013b4/?r=plwd)
 
 - [MAVLINK Common Message Set](https://mavlink.io/en/messages/common.html)
 - [Full Parameter List of Copter stable V4.5.0](https://ardupilot.org/copter/docs/parameters-Copter-stable-V4.5.0.html)
