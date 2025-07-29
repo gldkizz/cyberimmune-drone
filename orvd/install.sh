@@ -30,7 +30,7 @@ apt-get -y install python3 \
         python3-flasgger \
         python3-paho-mqtt
 
-cp ./default.conf /etc/mosquitto/conf.d/default.conf
+cp ../mqtt-server/default.conf /etc/mosquitto/conf.d/default.conf
 systemctl restart mosquitto
 
 apt-get -y install libapache2-mod-wsgi-py3
