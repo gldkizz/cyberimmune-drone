@@ -65,7 +65,7 @@ cp ~/Downloads/KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb cybe
 sudo apt-get update
 
 # Установка необходимых пакетов
-sudo apt-get install -y git make docker-compose docker.io libfuse2
+sudo apt-get install -y git make docker-compose-v2 docker.io libfuse2
 
 # Удаление ненужных пакетов
 sudo apt-get remove modemmanager -y
