@@ -27,8 +27,8 @@ from handlers.admin_handlers import (
     get_all_data_handler, toggle_flight_info_response_mode_handler,
     get_auto_mission_approval_handler, toggle_auto_mission_approval_handler,
     toggle_auto_revoke_permission_handler, set_revoke_coords_handler,
-    get_auto_revoke_permission_state_handler, toggle_auto_break_connection_handler,
-    set_break_coords_handler, get_auto_break_connection_state_handler
+    toggle_auto_break_connection_handler, set_break_coords_handler,
+    toggle_change_forbidden_zones_handler, set_change_forbidden_zones_coords_handler
 )
 from handlers.general_handlers import (
     key_ms_exchange_handler, fmission_ms_handler, get_logs_handler,
@@ -1752,38 +1752,123 @@ def toggle_auto_mission_approval_mode():
     token = request.args.get('token')
     return authorized_request(handler_func=toggle_auto_mission_approval_handler, token=token)
 
-@bp.route('/admin/toggle_auto_revoke_permission')
+@bp.route(AdminRoute.TOGGLE_AUTO_REVOKE_PERMISSION)
 def toggle_auto_revoke_permission():
     enabled = request.args.get('enabled') == 'true'
     token = request.args.get('token')
     return authorized_request(handler_func=toggle_auto_revoke_permission_handler, token=token, enabled=enabled)
 
-@bp.route('/admin/set_revoke_coords')
+@bp.route(AdminRoute.SET_REVOKE_COORDS)
 def set_revoke_coords():
     lat = request.args.get('lat')
     lon = request.args.get('lon')
     token = request.args.get('token')
     return authorized_request(handler_func=set_revoke_coords_handler, token=token, lat=lat, lon=lon)
 
-@bp.route('/admin/get_auto_revoke_permission_state')
-def get_auto_revoke_permission_state():
-    token = request.args.get('token')
-    return authorized_request(handler_func=get_auto_revoke_permission_state_handler, token=token)
-
-@bp.route('/admin/toggle_auto_break_connection')
+@bp.route(AdminRoute.TOGGLE_AUTO_BREAK_CONNECTION)
 def toggle_auto_break_connection():
     enabled = request.args.get('enabled') == 'true'
     token = request.args.get('token')
     return authorized_request(handler_func=toggle_auto_break_connection_handler, token=token, enabled=enabled)
 
-@bp.route('/admin/set_break_coords')
+@bp.route(AdminRoute.SET_BREAK_COORDS)
 def set_break_coords():
     lat = request.args.get('lat')
     lon = request.args.get('lon')
     token = request.args.get('token')
     return authorized_request(handler_func=set_break_coords_handler, token=token, lat=lat, lon=lon)
 
-@bp.route('/admin/get_auto_break_connection_state')
-def get_auto_break_connection_state():
+@bp.route(AdminRoute.TOGGLE_CHANGE_FORBIDDEN_ZONES)
+def toggle_change_forbidden_zones():
+    """
+    Включает/выключает режим смены запрещенных зон по координатам.
+    ---
+    tags:
+      - admin
+    parameters:
+      - name: enabled
+        in: query
+        type: boolean
+        required: true
+        description: Включить (true) или выключить (false).
+      - name: token
+        in: query
+        type: string
+        required: true
+        description: Токен аутентификации.
+    responses:
+      200:
+        description: Результат операции.
+        schema:
+          type: string
+          example: "$OK"
+    """
     token = request.args.get('token')
-    return authorized_request(handler_func=get_auto_break_connection_state_handler, token=token)
+    enabled = request.args.get('enabled') == 'true'
+    return authorized_request(handler_func=toggle_change_forbidden_zones_handler, token=token, enabled=enabled)
+
+
+@bp.route(AdminRoute.SET_CHANGE_FORBIDDEN_ZONES_COORDS)
+def set_change_forbidden_zones_coords():
+    """
+    Устанавливает координаты для смены запрещенных зон.
+    ---
+    tags:
+      - admin
+    parameters:
+      - name: lat_A
+        in: query
+        type: string
+        required: false
+        description: Широта для зоны A.
+      - name: lon_A
+        in: query
+        type: string
+        required: false
+        description: Долгота для зоны A.
+      - name: lat_B
+        in: query
+        type: string
+        required: false
+        description: Широта для зоны B.
+      - name: lon_B
+        in: query
+        type: string
+        required: false
+        description: Долгота для зоны B.
+      - name: lat_C
+        in: query
+        type: string
+        required: false
+        description: Широта для зоны C.
+      - name: lon_C
+        in: query
+        type: string
+        required: false
+        description: Долгота для зоны C.
+      - name: token
+        in: query
+        type: string
+        required: true
+        description: Токен аутентификации.
+    responses:
+      200:
+        description: Результат установки координат.
+        schema:
+          type: string
+          example: "$OK"
+    """
+    token = request.args.get('token')
+    lat_A = request.args.get('lat_A')
+    lon_A = request.args.get('lon_A')
+    lat_B = request.args.get('lat_B')
+    lon_B = request.args.get('lon_B')
+    lat_C = request.args.get('lat_C')
+    lon_C = request.args.get('lon_C')
+    return authorized_request(
+        handler_func=set_change_forbidden_zones_coords_handler,
+        token=token,
+        lat_A=lat_A, lon_A=lon_A,
+        lat_B=lat_B, lon_B=lon_B,
+        lat_C=lat_C, lon_C=lon_C
+    )

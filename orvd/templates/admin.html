@@ -85,6 +85,21 @@
               <label>Lon: <input type="text" id="break-lon"></label>
               <button id="set-break-coords" type="button">Установить</button>
             </div>
+            
+            <label>
+              <input type="checkbox" id="change-forbidden-zones-checkbox">
+              Смена запрещенных зон
+            </label>
+            <div id="change-forbidden-zones-coords" style="display: none;">
+                <label>Lat A: <input type="text" id="change-forbidden-zones-lat-A"></label>
+                <label>Lon A: <input type="text" id="change-forbidden-zones-lon-A"></label>
+                <label>Lat B: <input type="text" id="change-forbidden-zones-lat-B"></label>
+                <label>Lon B: <input type="text" id="change-forbidden-zones-lon-B"></label>
+                <label>Lat C: <input type="text" id="change-forbidden-zones-lat-C"></label>
+                <label>Lon C: <input type="text" id="change-forbidden-zones-lon-C"></label>
+                <button id="set-change-forbidden-zones-coords" type="button">Установить</button>
+            </div>
+
             <label>
               Задержка связи (сек):
               <input id="delay_input" type="number" min="0" step="1">

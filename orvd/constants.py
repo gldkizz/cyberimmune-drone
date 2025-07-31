@@ -108,6 +108,12 @@ class AdminRoute:
     GET_ALL_DATA = '/admin/get_all_data'
     GET_AUTO_MISSION_APPROVAL_MODE = '/admin/get_auto_mission_approval_mode'
     TOGGLE_AUTO_MISSION_APPROVAL_MODE = '/admin/toggle_auto_mission_approval_mode'
+    TOGGLE_AUTO_REVOKE_PERMISSION = '/admin/toggle_auto_revoke_permission'
+    SET_REVOKE_COORDS = '/admin/set_revoke_coords'
+    TOGGLE_AUTO_BREAK_CONNECTION = '/admin/toggle_auto_break_connection'
+    SET_BREAK_COORDS = '/admin/set_break_coords'
+    TOGGLE_CHANGE_FORBIDDEN_ZONES = '/admin/toggle_change_forbidden_zones'
+    SET_CHANGE_FORBIDDEN_ZONES_COORDS = '/admin/set_change_forbidden_zones_coords'
 
 class GeneralRoute:
     INDEX = '/'

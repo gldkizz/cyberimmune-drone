@@ -16,7 +16,7 @@ from db.dao import (
 from db.models import UavTelemetry, MissionStep, Mission, UavPublicKeys, Uav
 from utils import (
     cast_wrapper, generate_forbidden_zones_string,
-    get_sha256_hex, haversine
+    get_sha256_hex, haversine, compute_and_save_forbidden_zones_delta
 )
 from .mqtt_handlers import mqtt_publish_flight_state, mqtt_publish_ping, mqtt_publish_forbidden_zones, mqtt_publish_auth
     
@@ -172,6 +172,28 @@ def _restore_permission(uav_id):
 def _restore_connection(uav_id):
     context.flight_info_response = True
 
+def change_forbidden_zones(lat: float, lon: float):
+    target_zones_path = None
+    if context.change_forbidden_zones_A and haversine(lat, lon, context.change_forbidden_zones_A['lat'], context.change_forbidden_zones_A['lon']) <= 1:
+        target_zones_path = 'static/resources/zones_A.json'
+    elif context.change_forbidden_zones_B and haversine(lat, lon, context.change_forbidden_zones_B['lat'], context.change_forbidden_zones_B['lon']) <= 1:
+        target_zones_path = 'static/resources/zones_B.json'
+    elif context.change_forbidden_zones_C and haversine(lat, lon, context.change_forbidden_zones_C['lat'], context.change_forbidden_zones_C['lon']) <= 1:
+        target_zones_path = 'static/resources/zones_C.json'
+
+    if target_zones_path:
+        with open(target_zones_path, 'r', encoding='utf-8') as f:
+            new_zones_data = json.load(f)
+        
+        with open(FORBIDDEN_ZONES_PATH, 'r', encoding='utf-8') as f:
+            current_zones_data = json.load(f)
+
+        if json.dumps(new_zones_data, sort_keys=True) != json.dumps(current_zones_data, sort_keys=True):
+            with open(FORBIDDEN_ZONES_PATH, 'w', encoding='utf-8') as f:
+                json.dump(new_zones_data, f, ensure_ascii=False, indent=4)
+            
+            compute_and_save_forbidden_zones_delta(current_zones_data, new_zones_data)
+            mqtt_publish_forbidden_zones()
 
 def telemetry_handler(id: str, lat: float, lon: float, alt: float,
                       azimuth: float, dop: float, sats: float, speed: float, **kwargs):
@@ -247,6 +269,9 @@ def telemetry_handler(id: str, lat: float, lon: float, alt: float,
                 context.flight_info_response = False
                 context.connection_broken_uavs.add(id)
                 scheduler.add_oneshot_task(f"restore_connection_{id}", 30, _restore_connection, args=(id,))
+        
+        if context.change_forbidden_zones_enabled:
+            change_forbidden_zones(lat, lon)
 
         if not uav_entity.is_armed:
             return f'$Arm: {DISARMED}'

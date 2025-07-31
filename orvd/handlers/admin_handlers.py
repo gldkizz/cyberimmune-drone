@@ -538,6 +538,26 @@ def get_all_data_handler():
         uav_data['delay'] = str(uav.delay)
 
         all_data['uav_data'][uav.id] = uav_data
+
+    all_data['auto_revoke_permission_state'] = {
+        'enabled': context.permission_revoke_enabled,
+        'coords': context.permission_revoke_coords
+    }
+    all_data['auto_break_connection_state'] = {
+        'enabled': context.connection_break_enabled,
+        'coords': context.connection_break_coords
+    }
+    
+    all_data['change_forbidden_zones_state'] = {
+        'enabled': context.change_forbidden_zones_enabled,
+        'coords_A': context.change_forbidden_zones_A,
+        'coords_B': context.change_forbidden_zones_B,
+        'coords_C': context.change_forbidden_zones_C
+    }
+    all_data['display_mode'] = get_display_mode_handler()
+    all_data['flight_info_response_mode'] = get_flight_info_response_mode_handler()
+    all_data['auto_mission_approval_mode'] = get_auto_mission_approval_handler()
+
     return jsonify(all_data)
 
 def toggle_auto_revoke_permission_handler(enabled: bool):
@@ -554,12 +574,6 @@ def set_revoke_coords_handler(lat: str, lon: str):
         context.permission_revoke_coords = {}
     return OK
 
-def get_auto_revoke_permission_state_handler():
-    return jsonify({
-        'enabled': context.permission_revoke_enabled,
-        'coords': context.permission_revoke_coords
-    })
-
 def toggle_auto_break_connection_handler(enabled: bool):
     context.connection_break_enabled = enabled
     return OK
@@ -574,8 +588,33 @@ def set_break_coords_handler(lat: str, lon: str):
         context.connection_break_coords = {}
     return OK
 
-def get_auto_break_connection_state_handler():
-    return jsonify({
-        'enabled': context.connection_break_enabled,
-        'coords': context.connection_break_coords
-    })
+def toggle_change_forbidden_zones_handler(enabled: bool):
+    context.change_forbidden_zones_enabled = enabled
+    return OK
+
+def set_change_forbidden_zones_coords_handler(lat_A: str, lon_A: str, lat_B: str, lon_B: str, lat_C: str, lon_C: str):
+    if lat_A and lon_A:
+        try:
+            context.change_forbidden_zones_A = {'lat': float(lat_A), 'lon': float(lon_A)}
+        except ValueError:
+            return "Bad coordinates for A"
+    else:
+        context.change_forbidden_zones_A = {}
+
+    if lat_B and lon_B:
+        try:
+            context.change_forbidden_zones_B = {'lat': float(lat_B), 'lon': float(lon_B)}
+        except ValueError:
+            return "Bad coordinates for B"
+    else:
+        context.change_forbidden_zones_B = {}
+
+    if lat_C and lon_C:
+        try:
+            context.change_forbidden_zones_C = {'lat': float(lat_C), 'lon': float(lon_C)}
+        except ValueError:
+            return "Bad coordinates for C"
+    else:
+        context.change_forbidden_zones_C = {}
+        
+    return OK

@@ -37,6 +37,8 @@ document.getElementById('auto-revoke-permission-checkbox').onchange = toggleAuto
 document.getElementById('set-revoke-coords').onclick = setRevokeCoords;
 document.getElementById('auto-break-connection-checkbox').onchange = toggleAutoBreakConnection;
 document.getElementById('set-break-coords').onclick = setBreakCoords;
+document.getElementById('change-forbidden-zones-checkbox').onchange = toggleChangeForbiddenZones;
+document.getElementById('set-change-forbidden-zones-coords').onclick = setChangeForbiddenZonesCoords;
 
 
 ol.proj.useGeographic()
@@ -198,116 +200,6 @@ const map = new ol.Map({
   }),
 });
 
-// function createArcLine(center, radius, startAngle, endAngle, points = 64) {
-//   const angleStep = (endAngle - startAngle) / points;
-//   const coordinates = [];
-//   for (let i = 0; i <= points; i++) {
-//     const angle = startAngle + i * angleStep;
-//     const lon = center[0] + radius * Math.cos(angle);
-//     const lat = center[1] + radius * Math.sin(angle) / 2;
-//     coordinates.push([lon, lat]);
-//   }
-//   return new ol.geom.LineString(coordinates);
-// }
-
-// const fieldLayer = new ol.layer.Vector({
-//   source: new ol.source.Vector({})
-// });
-// const fieldLayerMainColor = 'rgba(51, 153, 204, 1)';
-
-// const mainFieldStyle = new ol.style.Style({
-//   fill: new ol.style.Fill({
-//     color: 'rgba(255, 255, 255, 0.2)',
-//   }),
-//   stroke: new ol.style.Stroke({
-//     color: fieldLayerMainColor,
-//     width: 2,
-//   }),
-// });
-
-// const fieldDashStrokeStyle = new ol.style.Style({
-//   stroke: new ol.style.Stroke({
-//     color: fieldLayerMainColor,
-//     lineDash: [4],
-//     width: 1,
-//   }),
-// });
-
-// const polygon = new ol.geom.Polygon([
-//   [
-//     [
-//       27.8573025,
-//       60.0027103
-//     ],
-//     [
-//       27.8574654,
-//       60.0026645
-//     ],
-//     [
-//       27.857329,
-//       60.0025433
-//     ],
-//     [
-//       27.8571673,
-//       60.002593
-//     ],
-//     [
-//       27.8573025,
-//       60.0027103
-//     ]
-//   ],
-// ]);
-// const polygonFeature = new ol.Feature(polygon);
-// polygonFeature.setStyle(mainFieldStyle);
-// fieldLayer.getSource().addFeature(polygonFeature);
-
-// const mainLine = new ol.Feature(new ol.geom.LineString([[27.8572349, 60.00265165],[27.8573972, 60.0026039]]));
-// mainLine.setStyle(
-//   new ol.style.Style({
-//     stroke: new ol.style.Stroke({
-//       color: fieldLayerMainColor,
-//       width: 2,
-//     }),
-//   })
-// );
-// fieldLayer.getSource().addFeature(mainLine);
-
-// const firstLine = new ol.Feature(new ol.geom.LineString([[27.8572574, 60.0026712],[27.8574199, 60.0026241]]));
-// const secondLine = new ol.Feature(new ol.geom.LineString([[27.8572123, 60.0026321],[27.8573744, 60.0025837]]));
-// firstLine.setStyle(fieldDashStrokeStyle);
-// secondLine.setStyle(fieldDashStrokeStyle);
-// fieldLayer.getSource().addFeature(firstLine);
-// fieldLayer.getSource().addFeature(secondLine);
-
-// const firstArcBase = -0.514079;
-// const firstArc = new ol.Feature(
-//   createArcLine([27.85738395, 60.0026874], 8e-5, firstArcBase + Math.PI, 2*Math.PI + firstArcBase)
-// )
-// firstArc.setStyle(fieldDashStrokeStyle);
-// fieldLayer.getSource().addFeature(firstArc);
-
-// const secondArcBase = -0.554079;
-// const secondArc = new ol.Feature(
-//   createArcLine([27.85724815, 60.00256815], 8e-5, secondArcBase, secondArcBase + Math.PI)
-// )
-// secondArc.setStyle(fieldDashStrokeStyle);
-// fieldLayer.getSource().addFeature(secondArc);
-
-// const circleFeature = new ol.Feature(new ol.geom.Circle([27.85731575, 60.0026278], 2e-5));
-// circleFeature.setStyle(
-//   new ol.style.Style({
-//     fill: new ol.style.Fill({
-//       color: 'rgba(255, 255, 255, 0.2)',
-//     }),
-//     stroke: new ol.style.Stroke({
-//       color: fieldLayerMainColor,
-//       width: 2,
-//     }),
-//   })
-// );
-// fieldLayer.getSource().addFeature(circleFeature);
-
-// map.addLayer(fieldLayer);
 
 const styles = {
   'Polygon': new ol.style.Style({
@@ -474,21 +366,6 @@ async function disarm() {
   }
 }
 
-async function f_disarm() {
-  if (active_id != null) {
-    let resp = await fetch("admin/force_disarm?id=" + active_id + "&token=" + access_token);
-    console.log(await resp.text());
-    status_change();
-  }
-}
-
-async function fa_disarm() {
-  if (active_id != null) {
-    let resp = await fetch("admin/force_disarm_all" + "?token=" + access_token);
-    console.log(await resp.text());
-    status_change();
-  }
-}
 
 async function kill_switch() {
   if (active_id != null) {
@@ -539,53 +416,18 @@ async function toggle_display_mode() {
   }
 }
 
-async function get_display_mode() {
-  const delay_resp = await fetch(`admin/get_display_mode?token=${access_token}`);
-  const delay_text = await delay_resp.text();
-  const $monitoringCheckbox = document.getElementById('monitoring-checkbox')
-  const $mainButtons = document.getElementById('main-buttons');
-  if (delay_text === '0') {
-    $monitoringCheckbox.checked = true;
-    $mainButtons.style.visibility = 'hidden';
-  } else {
-    $monitoringCheckbox.checked = false;
-    $mainButtons.style.visibility = 'visible';
-  }
-}
 
 async function toggle_flight_info_response_mode() {
   const query_str = `admin/toggle_flight_info_response_mode?token=${access_token}`;
   await fetch(query_str);
-  await get_flight_info_response_mode();
 }
 
-async function get_flight_info_response_mode() {
-  const delay_resp = await fetch(`admin/get_flight_info_response_mode?token=${access_token}`);
-  const delay_text = await delay_resp.text();
-  const $monitoringCheckbox = document.getElementById('flight-info-checkbox')
-  if (delay_text === '0') {
-    $monitoringCheckbox.checked = true;
-  } else {
-    $monitoringCheckbox.checked = false;
-  }
-}
 
 async function toggle_auto_mission_approval_mode() {
   const query_str = `admin/toggle_auto_mission_approval_mode?token=${access_token}`;
   await fetch(query_str);
-  await get_auto_mission_approval_mode();
 }
 
-async function get_auto_mission_approval_mode() {
-  const delay_resp = await fetch(`admin/get_auto_mission_approval_mode?token=${access_token}`);
-  const delay_text = await delay_resp.text();
-  const $monitoringCheckbox = document.getElementById('auto-mission-checkbox')
-  if (delay_text === '0') {
-    $monitoringCheckbox.checked = true;
-  } else {
-    $monitoringCheckbox.checked = false;
-  }
-}
 
 async function toggleAutoRevokePermission() {
   const checkbox = document.getElementById('auto-revoke-permission-checkbox');
@@ -596,24 +438,6 @@ async function toggleAutoRevokePermission() {
   }
   const query_str = `admin/toggle_auto_revoke_permission?enabled=${checkbox.checked}&token=${access_token}`;
   await fetch(query_str);
-}
-
-async function getAutoRevokePermissionState() {
-    const response = await fetch(`admin/get_auto_revoke_permission_state?token=${access_token}`);
-    const data = await response.json();
-    const checkbox = document.getElementById('auto-revoke-permission-checkbox');
-    const coordsDiv = document.getElementById('auto-revoke-permission-coords');
-    const revokeLatInput = document.getElementById('revoke-lat');
-    const revokeLonInput = document.getElementById('revoke-lon');
-
-    checkbox.checked = data.enabled;
-    coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
-    if (data.coords) {
-        if (document.activeElement !== revokeLatInput && document.activeElement !== revokeLonInput) {
-            revokeLatInput.value = data.coords.lat || '';
-            revokeLonInput.value = data.coords.lon || '';
-        }
-    }
 }
 
 async function setRevokeCoords() {
@@ -633,28 +457,31 @@ async function toggleAutoBreakConnection() {
     await fetch(query_str);
 }
 
-async function getAutoBreakConnectionState() {
-    const response = await fetch(`admin/get_auto_break_connection_state?token=${access_token}`);
-    const data = await response.json();
-    const checkbox = document.getElementById('auto-break-connection-checkbox');
-    const coordsDiv = document.getElementById('auto-break-connection-coords');
-    const breakLatInput = document.getElementById('break-lat');
-    const breakLonInput = document.getElementById('break-lon');
-
-    checkbox.checked = data.enabled;
-    coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
-    if (data.coords) {
-        if (document.activeElement !== breakLatInput && document.activeElement !== breakLonInput) {
-            breakLatInput.value = data.coords.lat || '';
-            breakLonInput.value = data.coords.lon || '';
-        }
-    }
-}
-
 async function setBreakCoords() {
     const lat = document.getElementById('break-lat').value;
     const lon = document.getElementById('break-lon').value;
     await fetch(`admin/set_break_coords?lat=${lat}&lon=${lon}&token=${access_token}`);
+}
+
+async function toggleChangeForbiddenZones() {
+    const checkbox = document.getElementById('change-forbidden-zones-checkbox');
+    const coordsDiv = document.getElementById('change-forbidden-zones-coords');
+    coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
+    if(checkbox.checked) {
+        await setChangeForbiddenZonesCoords();
+    }
+    const query_str = `admin/toggle_change_forbidden_zones?enabled=${checkbox.checked}&token=${access_token}`;
+    await fetch(query_str);
+}
+
+async function setChangeForbiddenZonesCoords() {
+    const latA = document.getElementById('change-forbidden-zones-lat-A').value;
+    const lonA = document.getElementById('change-forbidden-zones-lon-A').value;
+    const latB = document.getElementById('change-forbidden-zones-lat-B').value;
+    const lonB = document.getElementById('change-forbidden-zones-lon-B').value;
+    const latC = document.getElementById('change-forbidden-zones-lat-C').value;
+    const lonC = document.getElementById('change-forbidden-zones-lon-C').value;
+    await fetch(`admin/set_change_forbidden_zones_coords?lat_A=${latA}&lon_A=${lonA}&lat_B=${latB}&lon_B=${lonB}&lat_C=${latC}&lon_C=${lonC}&token=${access_token}`);
 }
 
 async function fly_accept() {
@@ -676,31 +503,7 @@ async function fly_accept() {
   }
 }
 
-async function status_change() {
-  let state_resp = await fetch("admin/get_state?id=" + active_id + "&token=" + access_token);
-  let state_text = await state_resp.text();
-  document.getElementById("status").innerHTML="Статус: " + state_text;
-  current_state = state_text;
-  if (state_text == 'В полете') {
-    document.getElementById('fly_accept_checkbox').checked = true;
-  } else {
-    document.getElementById('fly_accept_checkbox').checked = false;
-  }
-}
 
-async function waiters_change() {
-  let waiter_resp = await fetch("admin/get_waiter_number" + "?token=" + access_token);
-  let waiter_text = await waiter_resp.text();
-  document.getElementById("waiters").innerHTML="Ожидают: " + waiter_text;
-  let waiters_num = parseInt(waiter_text);
-  if (waiters_num > 0) {
-    document.getElementById('arm').disabled = false;
-    document.getElementById('disarm').disabled = false;
-  } else {
-    document.getElementById('arm').disabled = true;
-    document.getElementById('disarm').disabled = true;
-  }
-}
 
 async function get_mission(id) {
   let mission_resp = await fetch("admin/get_mission?id=" + id + "&token=" + access_token);
@@ -795,46 +598,7 @@ function add_or_update_vehicle_marker(id, lat, lon, alt, azimuth, speed) {
   }
 }
 
-async function get_telemetry(id) {
-  let telemetry_resp = await fetch("admin/get_telemetry?id=" + id + "&token=" + access_token);
-  if (telemetry_resp.ok) {
-    let telemetry_data = await telemetry_resp.json();
-    if ('error' in telemetry_data) {
-      return;
-    }
-    let lat = parseFloat(telemetry_data.lat);
-    let lon = parseFloat(telemetry_data.lon);
-    let alt = parseFloat(telemetry_data.alt);
-    let azimuth = parseFloat(telemetry_data.azimuth);
-    let dop = parseFloat(telemetry_data.dop);
-    let sats = parseInt(telemetry_data.sats);
-    let speed = parseFloat(telemetry_data.speed);
-    document.getElementById("dop").innerHTML = "DOP: " + dop;
-    document.getElementById("sats").innerHTML = "SATS: " + sats;
-    add_or_update_vehicle_marker(id, lat, lon, alt, azimuth, speed);
-    if (id === active_id) {
-      map.getView().setCenter([lon, lat]);
-    }
-  } else {
-    console.error("Failed to fetch telemetry data");
-  }
-}
 
-async function get_mission_state(id) {
-  let mission_state_resp = await fetch("admin/get_mission_state?id=" + id + "&token=" + access_token);
-  let mission_state_text = await mission_state_resp.text();
-  if (mission_state_text == '0') {
-    document.getElementById('mission_checkbox').checked = true;
-  } else if (mission_state_text == '1')  {
-    document.getElementById('mission_checkbox').checked = false;
-  } else if (mission_state_text == '2') {
-    document.getElementById('mission_checkbox').checked = false;
-    const revisedMissionBlock = document.getElementById('revised-mission-block');
-    revisedMissionBlock.style.visibility = 'visible';
-  } else {
-    document.getElementById('mission_checkbox').checked = false;
-  }
-}
 
 async function change_active_id(new_id) {
   const previous_active_id = active_id;
@@ -844,35 +608,8 @@ async function change_active_id(new_id) {
     removeTrajectory();
   }
   clear_markers()
-  status_change();
   await get_mission(new_id);
-  for(let idx = 0; idx < ids.length; idx++) {
-    get_telemetry(ids[idx]);
-  }
-  get_mission_state(new_id);
-  get_delay();
-}
-
-
-async function get_ids() {
-  let ids_resp = await fetch("admin/get_id_list" + "?token=" + access_token);
-  let ids_text = await ids_resp.text();
-  let new_ids = JSON.parse(ids_text.replace(/'/g, '"'));
-  let old_ids_len = ids.length;
-  ids = new_ids;
-  if (active_id == null && ids.length > 0) {
-    change_active_id(ids[0]);
-  }
-  
-  let id_select = document.getElementById("id_select");
-  
-  for (var i = old_ids_len; i<ids.length; i++){
-    var opt = document.createElement('option');
-    opt.value = ids[i];
-    opt.innerHTML = ids[i];
-    id_select.appendChild(opt);
-  }
-  
+  await getAllData();
 }
 
 
@@ -902,115 +639,177 @@ async function set_delay() {
   }
 }
 
-async function get_delay() {
-  if (active_id != null) {
-    let delay_resp = await fetch(`admin/get_delay?id=${active_id}&token=${access_token}`);
-    let delay_text = await delay_resp.text();
-    document.getElementById("delay").innerHTML = "Delay: " + delay_text;
-  }
-}
 
 async function getAllData() {
-  try {
-    const response = await fetch(`/admin/get_all_data?token=${access_token}`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    
-    ids = data.ids;
-    let id_select = document.getElementById("id_select");
-    const selectedIndex = id_select.selectedIndex;
-    id_select.innerHTML = '';
-    for (let i = 0; i < ids.length; i++) {
-      let opt = document.createElement('option');
-      opt.value = ids[i];
-      opt.innerHTML = ids[i];
-      id_select.appendChild(opt);
-    }
-    if (selectedIndex >= 0 && selectedIndex < id_select.options.length) {
-      id_select.selectedIndex = selectedIndex;
-    } else if(ids.length > 0) {
-      change_active_id(ids[0]);
-    }
-    
-    document.getElementById("waiters").innerHTML = "Ожидают: " + data.waiters;
-    document.getElementById('arm').disabled = !(parseInt(data.waiters) > 0);
-    document.getElementById('disarm').disabled = !(parseInt(data.waiters) > 0);
-    
-    for (const id in data.uav_data) {
-      const uavData = data.uav_data[id];
-      
-      if (id === active_id) {
-        document.getElementById("status").innerHTML = "Статус: " + uavData.state;
-        current_state = uavData.state;
+    try {
+        const response = await fetch(`/admin/get_all_data?token=${access_token}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        // Update IDs
+        ids = data.ids;
+        let id_select = document.getElementById("id_select");
+        const selectedIndex = id_select.selectedIndex;
+        id_select.innerHTML = '';
+        for (let i = 0; i < ids.length; i++) {
+            let opt = document.createElement('option');
+            opt.value = ids[i];
+            opt.innerHTML = ids[i];
+            id_select.appendChild(opt);
+        }
+        if (selectedIndex >= 0 && selectedIndex < id_select.options.length) {
+            id_select.selectedIndex = selectedIndex;
+        } else if (ids.length > 0) {
+            change_active_id(ids[0]);
+        }
+
+        // Update Waiters
+        document.getElementById("waiters").innerHTML = "Ожидают: " + data.waiters;
+        document.getElementById('arm').disabled = !(parseInt(data.waiters) > 0);
+        document.getElementById('disarm').disabled = !(parseInt(data.waiters) > 0);
+
+        // Update UAV Data
+        for (const id in data.uav_data) {
+            const uavData = data.uav_data[id];
+
+            if (id === active_id) {
+                document.getElementById("status").innerHTML = "Статус: " + uavData.state;
+                current_state = uavData.state;
+
+                if (uavData.state == 'В полете') {
+                    document.getElementById('fly_accept_checkbox').checked = true;
+                } else {
+                    document.getElementById('fly_accept_checkbox').checked = false;
+                }
+
+                if (uavData.mission_state == '0') {
+                    document.getElementById('mission_checkbox').checked = true;
+                } else if (uavData.mission_state == '1') {
+                    document.getElementById('mission_checkbox').checked = false;
+                } else if (uavData.mission_state == '2') {
+                    document.getElementById('mission_checkbox').checked = false;
+                    const revisedMissionBlock = document.getElementById('revised-mission-block');
+                    revisedMissionBlock.style.visibility = 'visible';
+                } else {
+                    document.getElementById('mission_checkbox').checked = false;
+                }
+
+                document.getElementById("delay").innerHTML = "Delay: " + uavData.delay;
+            }
+
+            if (uavData.telemetry) {
+                const { lat, lon, alt, azimuth, dop, sats, speed } = uavData.telemetry;
+                document.getElementById("dop").innerHTML = "DOP: " + dop;
+                document.getElementById("sats").innerHTML = "SATS: " + sats;
+                add_or_update_vehicle_marker(id, lat, lon, alt, azimuth, speed);
+                if (id === active_id) {
+                    map.getView().setCenter([lon, lat]);
+                }
+            }
+        }
+
+        // Update Forbidden Zones
+        if (forbidden_zones_display) {
+            await updateForbiddenZones();
+        }
+
+        const $monitoringCheckbox = document.getElementById('monitoring-checkbox')
+        const $mainButtons = document.getElementById('main-buttons');
+        if (data.display_mode === '0') {
+            $monitoringCheckbox.checked = true;
+            $mainButtons.style.visibility = 'hidden';
+        } else {
+            $monitoringCheckbox.checked = false;
+            $mainButtons.style.visibility = 'visible';
+        }
+
+        const $flightInfoCheckbox = document.getElementById('flight-info-checkbox')
+        if (data.flight_info_response_mode === '0') {
+            $flightInfoCheckbox.checked = true;
+        } else {
+            $flightInfoCheckbox.checked = false;
+        }
+
+        const $autoMissionCheckbox = document.getElementById('auto-mission-checkbox')
+        if (data.auto_mission_approval_mode === '0') {
+            $autoMissionCheckbox.checked = true;
+        } else {
+            $autoMissionCheckbox.checked = false;
+        }
+
+        // Update Auto Revoke Permission State from all_data
+        const autoRevokeData = data.auto_revoke_permission_state;
+        const autoRevokeCheckbox = document.getElementById('auto-revoke-permission-checkbox');
+        const autoRevokeCoordsDiv = document.getElementById('auto-revoke-permission-coords');
+        const revokeLatInput = document.getElementById('revoke-lat');
+        const revokeLonInput = document.getElementById('revoke-lon');
+        autoRevokeCheckbox.checked = autoRevokeData.enabled;
+        autoRevokeCoordsDiv.style.display = autoRevokeCheckbox.checked ? 'block' : 'none';
+        if (autoRevokeData.coords) {
+            if (document.activeElement !== revokeLatInput && document.activeElement !== revokeLonInput) {
+                revokeLatInput.value = autoRevokeData.coords.lat || '';
+                revokeLonInput.value = autoRevokeData.coords.lon || '';
+            }
+        }
+
+        // Update Auto Break Connection State from all_data
+        const autoBreakData = data.auto_break_connection_state;
+        const autoBreakCheckbox = document.getElementById('auto-break-connection-checkbox');
+        const autoBreakCoordsDiv = document.getElementById('auto-break-connection-coords');
+        const breakLatInput = document.getElementById('break-lat');
+        const breakLonInput = document.getElementById('break-lon');
+        autoBreakCheckbox.checked = autoBreakData.enabled;
+        autoBreakCoordsDiv.style.display = autoBreakCheckbox.checked ? 'block' : 'none';
+        if (autoBreakData.coords) {
+            if (document.activeElement !== breakLatInput && document.activeElement !== breakLonInput) {
+                breakLatInput.value = autoBreakData.coords.lat || '';
+                breakLonInput.value = autoBreakData.coords.lon || '';
+            }
+        }
         
-        if (uavData.state == 'В полете') {
-          document.getElementById('fly_accept_checkbox').checked = true;
-        } else {
-          document.getElementById('fly_accept_checkbox').checked = false;
+        const changeZonesData = data.change_forbidden_zones_state;
+        const changeZonesCheckbox = document.getElementById('change-forbidden-zones-checkbox');
+        const changeZonesCoordsDiv = document.getElementById('change-forbidden-zones-coords');
+        changeZonesCheckbox.checked = changeZonesData.enabled;
+        changeZonesCoordsDiv.style.display = changeZonesCheckbox.checked ? 'block' : 'none';
+
+        const latAInput = document.getElementById('change-forbidden-zones-lat-A');
+        const lonAInput = document.getElementById('change-forbidden-zones-lon-A');
+        const latBInput = document.getElementById('change-forbidden-zones-lat-B');
+        const lonBInput = document.getElementById('change-forbidden-zones-lon-B');
+        const latCInput = document.getElementById('change-forbidden-zones-lat-C');
+        const lonCInput = document.getElementById('change-forbidden-zones-lon-C');
+
+        const forbiddenZoneInputs = [latAInput, lonAInput, latBInput, lonBInput, latCInput, lonCInput];
+
+        if (!forbiddenZoneInputs.includes(document.activeElement)) {
+            if (changeZonesData.coords_A) {
+                latAInput.value = changeZonesData.coords_A.lat || '';
+                lonAInput.value = changeZonesData.coords_A.lon || '';
+            }
+            if (changeZonesData.coords_B) {
+                latBInput.value = changeZonesData.coords_B.lat || '';
+                lonBInput.value = changeZonesData.coords_B.lon || '';
+            }
+            if (changeZonesData.coords_C) {
+                latCInput.value = changeZonesData.coords_C.lat || '';
+                lonCInput.value = changeZonesData.coords_C.lon || '';
+            }
         }
-      }
-      
-      if (uavData.telemetry) {
-        const { lat, lon, alt, azimuth, dop, sats, speed } = uavData.telemetry;
-        document.getElementById("dop").innerHTML = "DOP: " + dop;
-        document.getElementById("sats").innerHTML = "SATS: " + sats;
-        add_or_update_vehicle_marker(id, lat, lon, alt, azimuth, speed);
-        if (id === active_id) {
-          map.getView().setCenter([lon, lat]);
-        }
-      }
-      
-      if (id === active_id) {
-        if (uavData.mission_state == '0') {
-          document.getElementById('mission_checkbox').checked = true;
-        } else if (uavData.mission_state == '1')  {
-          document.getElementById('mission_checkbox').checked = false;
-        } else if (uavData.mission_state == '2') {
-          document.getElementById('mission_checkbox').checked = false;
-          const revisedMissionBlock = document.getElementById('revised-mission-block');
-          revisedMissionBlock.style.visibility = 'visible';
-        } else {
-          document.getElementById('mission_checkbox').checked = false;
-        }
-      }
-      
-      if (id === active_id) {
-        document.getElementById("delay").innerHTML = "Delay: " + uavData.delay;
-      }
+
+
+    } catch (error) {
+        console.error("Failed to fetch all data:", error);
     }
-    
-    if (forbidden_zones_display) {
-      await updateForbiddenZones();
-    }
-    
-    get_display_mode();
-    get_flight_info_response_mode();
-    get_auto_mission_approval_mode();
-    getAutoRevokePermissionState();
-    getAutoBreakConnectionState();
-    
-  } catch (error) {
-    console.error("Failed to fetch all data:", error);
-  }
 }
 
 setInterval(async function() {
   if(active_id) {
     await get_mission(active_id);
-    await getAllData();
-  } else {
-    get_ids();
-    get_display_mode();
-    get_flight_info_response_mode();
-    get_auto_mission_approval_mode();
-    getAutoRevokePermissionState();
-    getAutoBreakConnectionState();
-    if (forbidden_zones_display) {
-      await updateForbiddenZones();
-    }
   }
+  await getAllData();
 }, 1000);
 
 function removeTrajectory() {

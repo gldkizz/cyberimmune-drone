@@ -16,5 +16,9 @@ class Context:
     connection_break_coords: dict = field(default_factory=dict)
     connection_break_enabled: bool = False
     connection_broken_uavs: set = field(default_factory=set)
+    change_forbidden_zones_enabled: bool = False
+    change_forbidden_zones_A: dict = field(default_factory=dict)
+    change_forbidden_zones_B: dict = field(default_factory=dict)
+    change_forbidden_zones_C: dict = field(default_factory=dict)
 
 context = Context()
