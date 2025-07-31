@@ -606,19 +606,19 @@ async function getAutoRevokePermissionState() {
     checkbox.checked = data.enabled;
     coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
     if (data.coords) {
-        document.getElementById('revoke-lat').value = data.coords.lat || '';
-        document.getElementById('revoke-lon').value = data.coords.lon || '';
+        if (document.activeElement !== document.getElementById('revoke-lat')) {
+            document.getElementById('revoke-lat').value = data.coords.lat || '';
+        }
+        if (document.activeElement !== document.getElementById('revoke-lon')) {
+            document.getElementById('revoke-lon').value = data.coords.lon || '';
+        }
     }
 }
 
 async function setRevokeCoords() {
     const lat = document.getElementById('revoke-lat').value;
     const lon = document.getElementById('revoke-lon').value;
-    if (lat && lon) {
-        await fetch(`admin/set_revoke_coords?lat=${lat}&lon=${lon}&token=${access_token}`);
-    } else {
-        await fetch(`admin/set_revoke_coords?lat=&lon=&token=${access_token}`);
-    }
+    await fetch(`admin/set_revoke_coords?lat=${lat}&lon=${lon}&token=${access_token}`);
 }
 
 async function toggleAutoBreakConnection() {
@@ -640,19 +640,19 @@ async function getAutoBreakConnectionState() {
     checkbox.checked = data.enabled;
     coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
     if (data.coords) {
-        document.getElementById('break-lat').value = data.coords.lat || '';
-        document.getElementById('break-lon').value = data.coords.lon || '';
+        if (document.activeElement !== document.getElementById('break-lat')) {
+            document.getElementById('break-lat').value = data.coords.lat || '';
+        }
+        if (document.activeElement !== document.getElementById('break-lon')) {
+            document.getElementById('break-lon').value = data.coords.lon || '';
+        }
     }
 }
 
 async function setBreakCoords() {
     const lat = document.getElementById('break-lat').value;
     const lon = document.getElementById('break-lon').value;
-    if (lat && lon) {
-        await fetch(`admin/set_break_coords?lat=${lat}&lon=${lon}&token=${access_token}`);
-    } else {
-        await fetch(`admin/set_break_coords?lat=&lon=&token=${access_token}`);
-    }
+    await fetch(`admin/set_break_coords?lat=${lat}&lon=${lon}&token=${access_token}`);
 }
 
 async function fly_accept() {
