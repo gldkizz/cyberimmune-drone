@@ -11,6 +11,7 @@ from db.models import Mission, MissionStep, MissionSenderPublicKeys, Uav, UavTel
 from utils import (
     generate_keys, read_mission, encode_mission, create_csv_from_telemetry
 )
+from .mqtt_handlers import mqtt_send_mission
 
 
 def key_ms_exchange_handler(id: str):
@@ -72,6 +73,8 @@ def fmission_ms_handler(id: str, mission_str: str, **kwargs):
         for idx, cmd in enumerate(encoded_mission):
             mission_step_entity = MissionStep(mission_id=id, step=idx, operation=cmd)
             add_changes(mission_step_entity)
+        if context.auto_mission_approval:
+            mqtt_send_mission(id)
         commit_changes()
         
     return mission_verification_status
