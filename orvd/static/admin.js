@@ -31,6 +31,7 @@ document.getElementById('monitoring-checkbox').onclick = () => toggle_display_mo
 document.getElementById('flight-info-checkbox').onclick = () => toggle_flight_info_response_mode();
 document.getElementById('copy-id').onclick = () => copy_current_id();
 document.getElementById('toggle-trajectory').onclick = toggleTrajectory;
+document.getElementById('auto-mission-checkbox').onclick = () => toggle_auto_mission_approval_mode();
 
 
 ol.proj.useGeographic()
@@ -564,6 +565,23 @@ async function get_flight_info_response_mode() {
   }
 }
 
+async function toggle_auto_mission_approval_mode() {
+  const query_str = `admin/toggle_auto_mission_approval_mode?token=${access_token}`;
+  await fetch(query_str);
+  await get_auto_mission_approval_mode();
+}
+
+async function get_auto_mission_approval_mode() {
+  const delay_resp = await fetch(`admin/get_auto_mission_approval_mode?token=${access_token}`);
+  const delay_text = await delay_resp.text();
+  const $monitoringCheckbox = document.getElementById('auto-mission-checkbox')
+  if (delay_text === '0') {
+    $monitoringCheckbox.checked = true;
+  } else {
+    $monitoringCheckbox.checked = false;
+  }
+}
+
 async function fly_accept() {
   let fly_accept_checkbox = document.getElementById('fly_accept_checkbox');
   if (active_id == null || current_state == "Kill switch ON") {
@@ -894,6 +912,7 @@ async function getAllData() {
     
     get_display_mode();
     get_flight_info_response_mode();
+    get_auto_mission_approval_mode();
     
   } catch (error) {
     console.error("Failed to fetch all data:", error);
@@ -908,6 +927,7 @@ setInterval(async function() {
     get_ids();
     get_display_mode();
     get_flight_info_response_mode();
+    get_auto_mission_approval_mode();
     if (forbidden_zones_display) {
       await updateForbiddenZones();
     }

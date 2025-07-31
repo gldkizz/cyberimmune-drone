@@ -66,7 +66,7 @@ def fmission_ms_handler(id: str, mission_str: str, **kwargs):
             delete_entity(mission_entity)
             commit_changes()
         
-        mission_entity = Mission(uav_id=id, is_accepted=False)
+        mission_entity = Mission(uav_id=id, is_accepted=context.auto_mission_approval)
         add_changes(mission_entity)
         encoded_mission = encode_mission(mission_list)
         for idx, cmd in enumerate(encoded_mission):

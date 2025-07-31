@@ -106,6 +106,8 @@ class AdminRoute:
     GET_FLIGHT_INFO_RESPONSE_MODE = '/admin/get_flight_info_response_mode'
     TOGGLE_FLIGHT_INFO_RESPONSE_MODE = '/admin/toggle_flight_info_response_mode'
     GET_ALL_DATA = '/admin/get_all_data'
+    GET_AUTO_MISSION_APPROVAL_MODE = '/admin/get_auto_mission_approval_mode'
+    TOGGLE_AUTO_MISSION_APPROVAL_MODE = '/admin/toggle_auto_mission_approval_mode'
 
 class GeneralRoute:
     INDEX = '/'

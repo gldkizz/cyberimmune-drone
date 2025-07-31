@@ -305,13 +305,16 @@ def revise_mission_handler(id: str, mission: str, **kwargs):
         delete_entity(mission_entity)
         commit_changes()
     
-    mission_entity = Mission(uav_id=id, is_accepted=False)
+    mission_entity = Mission(uav_id=id, is_accepted=context.auto_mission_approval)
     add_changes(mission_entity)
     for idx, cmd in enumerate(mission_list):
         mission_step_entity = MissionStep(mission_id=id, step=idx, operation=cmd)
         add_changes(mission_step_entity)
     commit_changes()
     
+    if context.auto_mission_approval:
+        return '$Approve 0'
+
     uav_entity = get_entity_by_key(Uav, id)
     if uav_entity:
         uav_entity.is_armed = False

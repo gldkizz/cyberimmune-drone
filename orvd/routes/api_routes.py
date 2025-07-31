@@ -24,7 +24,8 @@ from handlers.admin_handlers import (
     delete_forbidden_zone_handler, get_delay_handler, set_delay_handler,
     revise_mission_decision_handler, get_display_mode_handler,
     toggle_display_mode_handler, get_flight_info_response_mode_handler,
-    get_all_data_handler, toggle_flight_info_response_mode_handler
+    get_all_data_handler, toggle_flight_info_response_mode_handler,
+    get_auto_mission_approval_handler, toggle_auto_mission_approval_handler
 )
 from handlers.general_handlers import (
     key_ms_exchange_handler, fmission_ms_handler, get_logs_handler,
@@ -1699,3 +1700,51 @@ def toggle_flight_info_response_mode():
 def get_all_data():
     token = request.args.get('token')
     return authorized_request(handler_func=get_all_data_handler, token=token)
+
+
+@bp.route(AdminRoute.GET_AUTO_MISSION_APPROVAL_MODE)
+def get_auto_mission_approval_mode():
+    """
+    Получает текущий режим автоматического согласования миссии.
+    ---
+    tags:
+      - admin
+    parameters:
+      - name: token
+        in: query
+        type: string
+        required: true
+        description: Токен аутентификации.
+    responses:
+      200:
+        description: Текущий режим (0 - вкл, 1 - выкл).
+        schema:
+          type: string
+          example: "0"
+    """
+    token = request.args.get('token')
+    return authorized_request(handler_func=get_auto_mission_approval_handler, token=token)
+
+
+@bp.route(AdminRoute.TOGGLE_AUTO_MISSION_APPROVAL_MODE)
+def toggle_auto_mission_approval_mode():
+    """
+    Переключает режим автоматического согласования миссии.
+    ---
+    tags:
+      - admin
+    parameters:
+      - name: token
+        in: query
+        type: string
+        required: true
+        description: Токен аутентификации.
+    responses:
+      200:
+        description: $OK в случае успеха.
+        schema:
+          type: string
+          example: "$OK"
+    """
+    token = request.args.get('token')
+    return authorized_request(handler_func=toggle_auto_mission_approval_handler, token=token)

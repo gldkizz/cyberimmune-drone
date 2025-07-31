@@ -498,6 +498,13 @@ def toggle_flight_info_response_mode_handler():
     context.flight_info_response = not context.flight_info_response
     return OK
 
+def get_auto_mission_approval_handler():
+    return '0' if context.auto_mission_approval else '1'
+
+def toggle_auto_mission_approval_handler():
+    context.auto_mission_approval = not context.auto_mission_approval
+    return OK
+
 def get_all_data_handler():
     all_data = {}
 
