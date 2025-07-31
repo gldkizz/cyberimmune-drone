@@ -16,7 +16,7 @@ from db.dao import (
 from db.models import UavTelemetry, MissionStep, Mission, UavPublicKeys, Uav
 from utils import (
     cast_wrapper, generate_forbidden_zones_string,
-    get_sha256_hex
+    get_sha256_hex, haversine
 )
 from .mqtt_handlers import mqtt_publish_flight_state, mqtt_publish_ping, mqtt_publish_forbidden_zones, mqtt_publish_auth
     
@@ -59,8 +59,14 @@ def auth_handler(id: str):
         uav_entity.is_armed = False
         uav_entity.state = 'В сети'
         uav_entity.kill_switch_state = False
-        commit_changes()
-        
+        add_changes(uav_entity)
+
+    if id in context.permission_revoked_uavs:
+        context.permission_revoked_uavs.remove(id)
+    if id in context.connection_broken_uavs:
+        context.connection_broken_uavs.remove(id)
+    
+    commit_changes()
     flush()
     mqtt_publish_flight_state(id)
     scheduler.add_interval_task(
@@ -137,6 +143,8 @@ def flight_info_handler(id: str) -> str:
     Returns:
         str: Состояние полета БПЛА.
     """
+    if not context.flight_info_response:
+        return '$Flight -1'
     uav_entity = get_entity_by_key(Uav, id)
     if not uav_entity:
         return NOT_FOUND
@@ -150,6 +158,19 @@ def flight_info_handler(id: str) -> str:
         else:
             status = '$Flight 1'
         return ''.join([status, forbidden_zones_hash, delay])
+
+
+def _restore_permission(uav_id):
+    uav_entity = get_entity_by_key(Uav, uav_id)
+    if uav_entity:
+        uav_entity.is_armed = True
+        uav_entity.state = 'В полете'
+        commit_changes()
+        flush()
+        mqtt_publish_flight_state(uav_id)
+
+def _restore_connection(uav_id):
+    context.flight_info_response = True
 
 
 def telemetry_handler(id: str, lat: float, lon: float, alt: float,
@@ -208,6 +229,25 @@ def telemetry_handler(id: str, lat: float, lon: float, alt: float,
             uav_telemetry_entity.sats = sats
             uav_telemetry_entity.speed = speed
             commit_changes()
+
+        if context.permission_revoke_enabled and context.permission_revoke_coords and id not in context.permission_revoked_uavs:
+            distance = haversine(lat, lon, context.permission_revoke_coords['lat'], context.permission_revoke_coords['lon'])
+            if distance <= 1:
+                uav_entity.is_armed = False
+                uav_entity.state = 'В сети'
+                commit_changes()
+                flush()
+                mqtt_publish_flight_state(id)
+                context.permission_revoked_uavs.add(id)
+                scheduler.add_oneshot_task(f"restore_permission_{id}", 30, _restore_permission, args=(id,))
+
+        if context.connection_break_enabled and context.connection_break_coords and id not in context.connection_broken_uavs:
+            distance = haversine(lat, lon, context.connection_break_coords['lat'], context.connection_break_coords['lon'])
+            if distance <= 1:
+                context.flight_info_response = False
+                context.connection_broken_uavs.add(id)
+                scheduler.add_oneshot_task(f"restore_connection_{id}", 30, _restore_connection, args=(id,))
+
         if not uav_entity.is_armed:
             return f'$Arm: {DISARMED}'
         else:

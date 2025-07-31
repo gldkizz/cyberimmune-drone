@@ -33,6 +33,11 @@ document.getElementById('copy-id').onclick = () => copy_current_id();
 document.getElementById('toggle-trajectory').onclick = toggleTrajectory;
 document.getElementById('auto-mission-checkbox').onclick = () => toggle_auto_mission_approval_mode();
 
+document.getElementById('auto-revoke-permission-checkbox').onchange = toggleAutoRevokePermission;
+document.getElementById('set-revoke-coords').onclick = setRevokeCoords;
+document.getElementById('auto-break-connection-checkbox').onchange = toggleAutoBreakConnection;
+document.getElementById('set-break-coords').onclick = setBreakCoords;
+
 
 ol.proj.useGeographic()
 const place = [27.85731575, 60.0026278];
@@ -582,6 +587,74 @@ async function get_auto_mission_approval_mode() {
   }
 }
 
+async function toggleAutoRevokePermission() {
+  const checkbox = document.getElementById('auto-revoke-permission-checkbox');
+  const coordsDiv = document.getElementById('auto-revoke-permission-coords');
+  coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
+  if(checkbox.checked) {
+    await setRevokeCoords();
+  }
+  const query_str = `admin/toggle_auto_revoke_permission?enabled=${checkbox.checked}&token=${access_token}`;
+  await fetch(query_str);
+}
+
+async function getAutoRevokePermissionState() {
+    const response = await fetch(`admin/get_auto_revoke_permission_state?token=${access_token}`);
+    const data = await response.json();
+    const checkbox = document.getElementById('auto-revoke-permission-checkbox');
+    const coordsDiv = document.getElementById('auto-revoke-permission-coords');
+    checkbox.checked = data.enabled;
+    coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
+    if (data.coords) {
+        document.getElementById('revoke-lat').value = data.coords.lat || '';
+        document.getElementById('revoke-lon').value = data.coords.lon || '';
+    }
+}
+
+async function setRevokeCoords() {
+    const lat = document.getElementById('revoke-lat').value;
+    const lon = document.getElementById('revoke-lon').value;
+    if (lat && lon) {
+        await fetch(`admin/set_revoke_coords?lat=${lat}&lon=${lon}&token=${access_token}`);
+    } else {
+        await fetch(`admin/set_revoke_coords?lat=&lon=&token=${access_token}`);
+    }
+}
+
+async function toggleAutoBreakConnection() {
+    const checkbox = document.getElementById('auto-break-connection-checkbox');
+    const coordsDiv = document.getElementById('auto-break-connection-coords');
+    coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
+    if(checkbox.checked) {
+      await setBreakCoords();
+    }
+    const query_str = `admin/toggle_auto_break_connection?enabled=${checkbox.checked}&token=${access_token}`;
+    await fetch(query_str);
+}
+
+async function getAutoBreakConnectionState() {
+    const response = await fetch(`admin/get_auto_break_connection_state?token=${access_token}`);
+    const data = await response.json();
+    const checkbox = document.getElementById('auto-break-connection-checkbox');
+    const coordsDiv = document.getElementById('auto-break-connection-coords');
+    checkbox.checked = data.enabled;
+    coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
+    if (data.coords) {
+        document.getElementById('break-lat').value = data.coords.lat || '';
+        document.getElementById('break-lon').value = data.coords.lon || '';
+    }
+}
+
+async function setBreakCoords() {
+    const lat = document.getElementById('break-lat').value;
+    const lon = document.getElementById('break-lon').value;
+    if (lat && lon) {
+        await fetch(`admin/set_break_coords?lat=${lat}&lon=${lon}&token=${access_token}`);
+    } else {
+        await fetch(`admin/set_break_coords?lat=&lon=&token=${access_token}`);
+    }
+}
+
 async function fly_accept() {
   let fly_accept_checkbox = document.getElementById('fly_accept_checkbox');
   if (active_id == null || current_state == "Kill switch ON") {
@@ -913,6 +986,8 @@ async function getAllData() {
     get_display_mode();
     get_flight_info_response_mode();
     get_auto_mission_approval_mode();
+    getAutoRevokePermissionState();
+    getAutoBreakConnectionState();
     
   } catch (error) {
     console.error("Failed to fetch all data:", error);
@@ -928,6 +1003,8 @@ setInterval(async function() {
     get_display_mode();
     get_flight_info_response_mode();
     get_auto_mission_approval_mode();
+    getAutoRevokePermissionState();
+    getAutoBreakConnectionState();
     if (forbidden_zones_display) {
       await updateForbiddenZones();
     }

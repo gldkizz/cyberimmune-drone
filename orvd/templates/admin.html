@@ -67,6 +67,25 @@
               Автоматическое согласование миссии
             </label>
             <label>
+              <input type="checkbox" id="auto-revoke-permission-checkbox">
+              Автоматически отзывать разрешение на полет
+            </label>
+            <div id="auto-revoke-permission-coords" style="display: none;">
+              <label>Lat: <input type="text" id="revoke-lat"></label>
+              <label>Lon: <input type="text" id="revoke-lon"></label>
+              <button id="set-revoke-coords" type="button">Установить</button>
+            </div>
+
+            <label>
+              <input type="checkbox" id="auto-break-connection-checkbox">
+              Автоматически имитировать разрыв соединения
+            </label>
+            <div id="auto-break-connection-coords" style="display: none;">
+              <label>Lat: <input type="text" id="break-lat"></label>
+              <label>Lon: <input type="text" id="break-lon"></label>
+              <button id="set-break-coords" type="button">Установить</button>
+            </div>
+            <label>
               Задержка связи (сек):
               <input id="delay_input" type="number" min="0" step="1">
             </label>

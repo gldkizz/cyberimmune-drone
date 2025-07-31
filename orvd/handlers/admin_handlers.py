@@ -539,3 +539,43 @@ def get_all_data_handler():
 
         all_data['uav_data'][uav.id] = uav_data
     return jsonify(all_data)
+
+def toggle_auto_revoke_permission_handler(enabled: bool):
+    context.permission_revoke_enabled = enabled
+    return OK
+
+def set_revoke_coords_handler(lat: str, lon: str):
+    if lat and lon:
+        try:
+            context.permission_revoke_coords = {'lat': float(lat), 'lon': float(lon)}
+        except ValueError:
+            return "Bad coordinates"
+    else:
+        context.permission_revoke_coords = {}
+    return OK
+
+def get_auto_revoke_permission_state_handler():
+    return jsonify({
+        'enabled': context.permission_revoke_enabled,
+        'coords': context.permission_revoke_coords
+    })
+
+def toggle_auto_break_connection_handler(enabled: bool):
+    context.connection_break_enabled = enabled
+    return OK
+
+def set_break_coords_handler(lat: str, lon: str):
+    if lat and lon:
+        try:
+            context.connection_break_coords = {'lat': float(lat), 'lon': float(lon)}
+        except ValueError:
+            return "Bad coordinates"
+    else:
+        context.connection_break_coords = {}
+    return OK
+
+def get_auto_break_connection_state_handler():
+    return jsonify({
+        'enabled': context.connection_break_enabled,
+        'coords': context.connection_break_coords
+    })

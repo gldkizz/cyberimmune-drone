@@ -25,7 +25,10 @@ from handlers.admin_handlers import (
     revise_mission_decision_handler, get_display_mode_handler,
     toggle_display_mode_handler, get_flight_info_response_mode_handler,
     get_all_data_handler, toggle_flight_info_response_mode_handler,
-    get_auto_mission_approval_handler, toggle_auto_mission_approval_handler
+    get_auto_mission_approval_handler, toggle_auto_mission_approval_handler,
+    toggle_auto_revoke_permission_handler, set_revoke_coords_handler,
+    get_auto_revoke_permission_state_handler, toggle_auto_break_connection_handler,
+    set_break_coords_handler, get_auto_break_connection_state_handler
 )
 from handlers.general_handlers import (
     key_ms_exchange_handler, fmission_ms_handler, get_logs_handler,
@@ -1748,3 +1751,39 @@ def toggle_auto_mission_approval_mode():
     """
     token = request.args.get('token')
     return authorized_request(handler_func=toggle_auto_mission_approval_handler, token=token)
+
+@bp.route('/admin/toggle_auto_revoke_permission')
+def toggle_auto_revoke_permission():
+    enabled = request.args.get('enabled') == 'true'
+    token = request.args.get('token')
+    return authorized_request(handler_func=toggle_auto_revoke_permission_handler, token=token, enabled=enabled)
+
+@bp.route('/admin/set_revoke_coords')
+def set_revoke_coords():
+    lat = request.args.get('lat')
+    lon = request.args.get('lon')
+    token = request.args.get('token')
+    return authorized_request(handler_func=set_revoke_coords_handler, token=token, lat=lat, lon=lon)
+
+@bp.route('/admin/get_auto_revoke_permission_state')
+def get_auto_revoke_permission_state():
+    token = request.args.get('token')
+    return authorized_request(handler_func=get_auto_revoke_permission_state_handler, token=token)
+
+@bp.route('/admin/toggle_auto_break_connection')
+def toggle_auto_break_connection():
+    enabled = request.args.get('enabled') == 'true'
+    token = request.args.get('token')
+    return authorized_request(handler_func=toggle_auto_break_connection_handler, token=token, enabled=enabled)
+
+@bp.route('/admin/set_break_coords')
+def set_break_coords():
+    lat = request.args.get('lat')
+    lon = request.args.get('lon')
+    token = request.args.get('token')
+    return authorized_request(handler_func=set_break_coords_handler, token=token, lat=lat, lon=lon)
+
+@bp.route('/admin/get_auto_break_connection_state')
+def get_auto_break_connection_state():
+    token = request.args.get('token')
+    return authorized_request(handler_func=get_auto_break_connection_state_handler, token=token)
