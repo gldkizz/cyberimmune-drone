@@ -1,11 +1,14 @@
 import json
 from extensions import mqtt_client as mqtt
+from context import context
 from utils import sign, generate_forbidden_zones_string
 from db.dao import get_entity_by_key, get_entities_by_field_with_order
 from db.models import Uav, Mission, MissionStep
 from constants import MQTTTopic, KeyGroup, FORBIDDEN_ZONES_PATH
 
 def mqtt_publish_flight_state(id: str, *args, **kwargs):
+    if not context.flight_info_response:
+        return
     uav_entity = get_entity_by_key(Uav, id)
     if not uav_entity:
         return
@@ -21,6 +24,8 @@ def mqtt_publish_flight_state(id: str, *args, **kwargs):
     mqtt.publish_message(MQTTTopic.FLIGHT_STATUS.format(id=id), message)
     
 def mqtt_publish_ping(id: str, *args, **kwargs):
+    if not context.flight_info_response:
+        return
     uav_entity = get_entity_by_key(Uav, id)
     if not uav_entity:
         return
@@ -30,11 +35,15 @@ def mqtt_publish_ping(id: str, *args, **kwargs):
     mqtt.publish_message(MQTTTopic.PING.format(id=id), message)
     
 def mqtt_publish_auth(id: str, *args, **kwargs):
+    if not context.flight_info_response:
+        return
     message = f'$Auth {id}'
     signed_message = f'{message}#{hex(sign(message, KeyGroup.ORVD))[2:]}'
     mqtt.publish_message(MQTTTopic.AUTH.format(id=id), signed_message)
 
 def mqtt_publish_forbidden_zones(*args, **kwargs):
+    if not context.flight_info_response:
+        return
     try:
         with open(FORBIDDEN_ZONES_PATH, 'r', encoding='utf-8') as f:
             forbidden_zones = json.load(f)
@@ -47,6 +56,8 @@ def mqtt_publish_forbidden_zones(*args, **kwargs):
         return
     
 def mqtt_send_mission(id: str, *args, **kwargs):
+    if not context.flight_info_response:
+        return
     uav_entity = get_entity_by_key(Uav, id)
     if uav_entity:
         mission = get_entity_by_key(Mission, id)
