@@ -603,14 +603,15 @@ async function getAutoRevokePermissionState() {
     const data = await response.json();
     const checkbox = document.getElementById('auto-revoke-permission-checkbox');
     const coordsDiv = document.getElementById('auto-revoke-permission-coords');
+    const revokeLatInput = document.getElementById('revoke-lat');
+    const revokeLonInput = document.getElementById('revoke-lon');
+
     checkbox.checked = data.enabled;
     coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
     if (data.coords) {
-        if (document.activeElement !== document.getElementById('revoke-lat')) {
-            document.getElementById('revoke-lat').value = data.coords.lat || '';
-        }
-        if (document.activeElement !== document.getElementById('revoke-lon')) {
-            document.getElementById('revoke-lon').value = data.coords.lon || '';
+        if (document.activeElement !== revokeLatInput && document.activeElement !== revokeLonInput) {
+            revokeLatInput.value = data.coords.lat || '';
+            revokeLonInput.value = data.coords.lon || '';
         }
     }
 }
@@ -637,14 +638,15 @@ async function getAutoBreakConnectionState() {
     const data = await response.json();
     const checkbox = document.getElementById('auto-break-connection-checkbox');
     const coordsDiv = document.getElementById('auto-break-connection-coords');
+    const breakLatInput = document.getElementById('break-lat');
+    const breakLonInput = document.getElementById('break-lon');
+
     checkbox.checked = data.enabled;
     coordsDiv.style.display = checkbox.checked ? 'block' : 'none';
     if (data.coords) {
-        if (document.activeElement !== document.getElementById('break-lat')) {
-            document.getElementById('break-lat').value = data.coords.lat || '';
-        }
-        if (document.activeElement !== document.getElementById('break-lon')) {
-            document.getElementById('break-lon').value = data.coords.lon || '';
+        if (document.activeElement !== breakLatInput && document.activeElement !== breakLonInput) {
+            breakLatInput.value = data.coords.lat || '';
+            breakLonInput.value = data.coords.lon || '';
         }
     }
 }
