@@ -57,7 +57,7 @@ void pingSession() {
         }
         else {
             //No response from the server
-            //If server does not respond for 3 more seconds, flight must be paused until the response is received 
+            //If server does not respond for 3 more seconds, flight must be paused until the response is received
         }
 
         sleep(sessionDelay);
@@ -76,7 +76,7 @@ void serverUpdateCheck() {
             if (strcmp(message, "")) {
                 uint8_t authenticity = 0;
                 if (checkSignature(message, authenticity) || !authenticity) {
-                    if (strstr(message, "$Flight -1$")) {
+                    if (strstr(message, "$Flight -1#")) {
                         logEntry("Emergency stop request is received. Disabling motors", ENTITY_NAME, LogLevel::LOG_INFO);
                         if (!enableBuzzer())
                             logEntry("Failed to enable buzzer", ENTITY_NAME, LogLevel::LOG_WARNING);
@@ -86,8 +86,8 @@ void serverUpdateCheck() {
                         }
                     }
                     //The message has two other possible options:
-                    //  "$Flight 1$" that requires to pause flight and remain landed
-                    //  "$Flight 0$" that requires to resume flight and keep flying
+                    //  "$Flight 1#" that requires to pause flight and remain landed
+                    //  "$Flight 0#" that requires to resume flight and keep flying
                     //Implementation is required to be done
                 }
                 else
