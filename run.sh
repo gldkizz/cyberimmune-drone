@@ -5,6 +5,7 @@ export SDK_PKG_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0.166_ru.deb
 #export SDK_FOLDER_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-wifi
 #export SDK_PKG_NAME=KasperskyOS-Community-Edition-RaspberryPi4b-1.3.0_amd64.deb
 
+source default.env
 rm -f mavproxy/MAVProxy/mav.parm
 rm -f mavproxy/MAVProxy/mav.tlog
 rm -f mavproxy/MAVProxy/mav.tlog.raw
@@ -19,7 +20,7 @@ if [[ $* == *"--no-server"* ]]
 	then
 		tmux send-keys -t flight_controller "cd kos; ./cross-build.sh --target sim --mode offline" Enter
 	else
-		tmux send-keys -t flight_controller "cd kos; ./cross-build.sh --target sim --mode online" Enter
+		tmux send-keys -t flight_controller "cd kos; ./cross-build.sh --target sim --mode online --mqtt-username=${KOS_MQTT_USERNAME} --mqtt-password=${KOS_MQTT_PASSWORD}" Enter
 fi
 tmux split-window -v -p 50 -t flight_controller
 if [[ $* == *"--with-obstacles"* ]]
