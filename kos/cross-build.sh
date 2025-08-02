@@ -22,6 +22,8 @@ PAL_TESTS=""
 SIMULATOR_IP="10.0.2.2"
 SERVER_IP="10.0.2.2"
 MQTT_IP="10.0.2.2"
+MQTT_USERNAME=""
+MQTT_PASSWORD=""
 NTP_IP=${SERVER_IP}
 BOARD="RPI4_BCM2711"
 COORD_SRC=1
@@ -49,6 +51,10 @@ function help
              User-defined IP of the ATM server
     --mqtt-ip,
              User-defined IP of MQTT server
+    --mqtt-username,
+             Username for MQTT server
+    --mqtt-password,
+             Password for MQTT server
     --ntp-ip,
              User-defined IP of NTP server
     --target,
@@ -86,6 +92,12 @@ do
             ;;
         --mqtt-ip)
             MQTT_IP=$2
+            ;;
+        --mqtt-username)
+            MQTT_USERNAME=$2
+            ;;
+        --mqtt-password)
+            MQTT_PASSWORD=$2
             ;;
 	--ntp-ip)
 	    NTP_IP=$2
@@ -186,6 +198,8 @@ fi
       -D SIMULATOR_IP=$SIMULATOR_IP \
       -D SERVER_IP=$SERVER_IP \
       -D MQTT_IP=$MQTT_IP \
+      -D MQTT_USERNAME=$MQTT_USERNAME \
+      -D MQTT_PASSWORD=$MQTT_PASSWORD \
       -D NTP_IP=$NTP_IP \
       -D COORD_SRC=$COORD_SRC \
       -D ALT_SRC=$ALT_SRC \

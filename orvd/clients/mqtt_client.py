@@ -86,10 +86,13 @@ class MQTTClientWrapper:
         MQTT_BROKER = os.environ.get("MQTT_HOST", "localhost")
         MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
         MQTT_CLIENT_ID = os.environ.get("MQTT_CLIENT_ID", f"orvd_server_mqtt_client_{os.getpid()}")
+        MQTT_USERNAME = os.environ.get("MQTT_USERNAME")
+        MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD")
 
         self.client = mqtt.Client(client_id=MQTT_CLIENT_ID)
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
+        self.client.username_pw_set(username=MQTT_USERNAME, password=MQTT_PASSWORD)
 
         try:
             self.client.connect(MQTT_BROKER, MQTT_PORT, 60)

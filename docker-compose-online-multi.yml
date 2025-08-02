@@ -149,6 +149,9 @@ services:
     restart: always
     environment:
       MQTT_HOST: "172.28.0.5"
+      MQTT_USERNAME: ${ORVD_MQTT_USERNAME}
+      MQTT_PASSWORD: ${ORVD_MQTT_PASSWORD}
+    env_file: default.env
     depends_on:
       - mqtt-server
     networks:

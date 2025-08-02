@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
     container_name: kos
-    command: /home/user/kos/cross-build.sh --target sim --mode online --simulator-ip 172.28.0.2 --server-ip 172.28.0.4 --mqtt-ip 172.28.0.5 --board-id 52:58:00:12:34:bb
+    command: /home/user/kos/cross-build.sh --target sim --mode online --simulator-ip 172.28.0.2 --server-ip 172.28.0.4 --mqtt-ip 172.28.0.5 --mqtt-username "${KOS_MQTT_USERNAME}" --mqtt-password "${KOS_MQTT_PASSWORD}" --board-id 52:58:00:12:34:bb
     working_dir: /home/user/kos
     user: user
     depends_on:
@@ -68,6 +68,8 @@ services:
     restart: always
     environment:
       MQTT_HOST: "172.28.0.5"
+      MQTT_USERNAME: ${ORVD_MQTT_USERNAME}
+      MQTT_PASSWORD: ${ORVD_MQTT_PASSWORD}
     depends_on:
       - mqtt-server
     networks:
