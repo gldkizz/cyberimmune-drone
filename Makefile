@@ -132,6 +132,16 @@ start-mavproxy-client: ## Запуск MAVProxy как ground control с гра�
 	docker run --name mavproxy-client -w /home/user/mavproxy --user user --net host -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY -it --rm simulator /bin/bash -c "mavproxy.py --master udp:0.0.0.0:14550 --logfile /home/user/mav.tlog --console --map --load-module=horizon --load-module=buttons" || true
 	xhost -local:
 
+start-mavproxy-client-real: ## Запуск MAVProxy как ground control с графикой
+	xhost +local:
+	docker run --name mavproxy-client -w /home/user/mavproxy --user user --network host -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY -it --rm simulator /bin/bash -c "mavproxy.py --master udp:0.0.0.0:14550 --logfile /home/user/mav.tlog --console --map --load-module=horizon --load-module=buttons" || true
+	xhost -local:
+
+start-mavproxy-client-real-demo: ## Запуск MAVProxy как ground control с графикой
+	xhost +local:
+	docker run --name mavproxy-client -w /home/user/mavproxy --user user --network host -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY -it --rm simulator /bin/bash -c "mavproxy.py --master udpout:192.168.0.100:14550 --logfile /home/user/mav.tlog --console --map --load-module=horizon --load-module=buttons" || true
+	xhost -local:
+
 e2e-offline: docker-image ## Запуск сквозных тестов в режиме offline
 	docker compose -f tests/e2e-offline-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
 	docker compose -f tests/e2e-offline-docker-compose.yml down
