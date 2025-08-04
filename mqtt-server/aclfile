@@ -1,0 +1,59 @@
+# This affects access control for clients with no username.
+topic read $SYS/#
+#topic read api/forbidden_zones
+
+# This only affects clients with username "orvd".
+user orvd
+topic readwrite ping/+
+topic readwrite api/forbidden_zones
+topic readwrite api/telemetry/+
+topic readwrite api/flight_status/+
+topic readwrite api/fmission_kos/+
+topic readwrite api/auth/+
+topic readwrite api/events/+
+topic readwrite api/nmission/response/+
+topic readwrite api/nmission/request/+
+topic readwrite api/arm/response/+
+topic readwrite api/arm/request/+
+
+user infopanel
+topic readwrite ping/+
+topic readwrite api/forbidden_zones
+topic readwrite api/telemetry/+
+topic readwrite api/flight_status/+
+topic readwrite api/fmission_kos/+
+topic readwrite api/auth/+
+topic readwrite api/events/+
+topic readwrite api/nmission/response/+
+topic readwrite api/nmission/request/+
+topic readwrite api/arm/response/+
+topic readwrite api/arm/request/+
+
+user 52_58_00_12_34_bb
+topic readwrite ping/52:58:00:12:34:bb
+topic readwrite api/telemetry/52:58:00:12:34:bb
+topic readwrite api/flight_status/52:58:00:12:34:bb
+topic readwrite api/fmission_kos/52:58:00:12:34:bb
+topic readwrite api/auth/52:58:00:12:34:bb
+topic readwrite api/events/52:58:00:12:34:bb
+topic readwrite api/nmission/response/52:58:00:12:34:bb
+topic readwrite api/nmission/request/52:58:00:12:34:bb
+topic readwrite api/arm/response/52:58:00:12:34:bb
+topic readwrite api/arm/request/52:58:00:12:34:bb
+topic read api/forbidden_zones
+
+# This affects all clients.
+# pattern write $SYS/broker/connection/%c/state
+
+#pattern readwrite ping/%u
+#pattern readwrite api/telemetry/%u
+#pattern readwrite api/flight_status/%u
+#pattern readwrite api/fmission_kos/%u
+#pattern readwrite api/auth/%u
+#pattern readwrite api/events/%u
+#pattern readwrite api/nmission/response/%u
+#pattern readwrite api/nmission/request/%u
+#pattern readwrite api/arm/response/%u
+#pattern readwrite api/arm/request/%u
+#topic read api/forbidden_zones
+

@@ -1,4 +1,5 @@
 #!/bin/bash
+source ../default.env
 apt-get update
 apt install -y apache2 net-tools mosquitto
 ufw enable
@@ -31,6 +32,9 @@ apt-get -y install python3 \
         python3-paho-mqtt
 
 cp ../mqtt-server/default.conf /etc/mosquitto/conf.d/default.conf
+cp ../mqtt-server/aclfile /etc/mosquitto/conf.d/aclfile
+cp ../mqtt-server/pwfile /etc/mosquitto/conf.d/pwfile
+
 systemctl restart mosquitto
 
 apt-get -y install libapache2-mod-wsgi-py3
@@ -48,6 +52,8 @@ chmod -R 777 /var/www
 
 sed -i '$a export ADMIN_LOGIN='$ADMIN_LOGIN /etc/apache2/envvars
 sed -i '$a export ADMIN_PASSW='$ADMIN_PASSW /etc/apache2/envvars
+echo "export MQTT_USERNAME=${ORVD_MQTT_USERNAME}" >> /etc/apache2/envvars
+echo "export MQTT_PASSWORD=${ORVD_MQTT_PASSWORD}" >> /etc/apache2/envvars
 
 systemctl restart apache2
 

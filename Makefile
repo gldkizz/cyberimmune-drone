@@ -66,19 +66,19 @@ offline: docker ## Запуск проекта в режиме offline
 	docker compose -f docker-compose-offline.yml up
 
 online: docker ## Запуск проекта в режиме online
-	docker compose -f docker-compose-online.yml up
+	docker compose --env-file default.env -f docker-compose-online.yml up
 
 offline-obstacles: docker ## Запуск проекта в режиме offline с киберпрепятствиями
 	docker compose -f docker-compose-offline-obstacles.yml up
 
 online-obstacles: docker ## Запуск проекта в режиме online с киберпрепятствиями
-	docker compose -f docker-compose-online-obstacles.yml up
+	docker compose --env-file default.env -f docker-compose-online-obstacles.yml up
 
 offline-multi: docker
 	docker compose -f docker-compose-offline-multi.yml up
 
 online-multi: docker
-	docker compose -f docker-compose-online-multi.yml up
+	docker compose --env-file default.env -f docker-compose-online-multi.yml up
 
 docker-compose-stop: ## Остановка docker-compose проектов
 	docker compose stop
@@ -114,6 +114,9 @@ shell-orvd:
 shell-orvd-real:
 	docker run --volume="`pwd`:/home/user/" --name orvd -w /home/user/orvd --net simulator -p 8080:8080 --ip 172.28.0.4 -it --rm orvd /bin/bash -i
 
+mqtt-password-generator:
+	while read -r one two; do mosquitto_passwd -b mqtt-server/pwfile $$one $$two; done < mqtt-server/pass-list.txt
+
 start-mqtt-server: ## запуск mqtt сервера в docker контейнере
 	docker run --name mqtt-server -p 1883:1883 -p 8883:8883 --rm mqtt-server
 
@@ -138,7 +141,7 @@ e2e-offline-real: ## Запуск сквозных тестов в режиме 
 	docker compose -f tests/e2e-offline-real-docker-compose.yml down
 
 e2e-online: docker-image ## Запуск сквозных тестов в режиме online
-	docker compose -f tests/e2e-online-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
+	docker compose --env-file default.env -f tests/e2e-online-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
 	docker compose -f tests/e2e-online-docker-compose.yml down
 
 e2e-offline-obstacles: docker-image ## Запуск сквозных тестов в режиме offline с киберпрепятствиями
@@ -146,7 +149,7 @@ e2e-offline-obstacles: docker-image ## Запуск сквозных тесто�
 	docker compose -f tests/e2e-offline-obstacles-docker-compose.yml down
 
 e2e-online-obstacles: docker-image ## Запуск сквозных тестов в режиме online с киберпрепятствиями
-	docker compose -f tests/e2e-online-obstacles-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
+	docker compose --env-file default.env -f tests/e2e-online-obstacles-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
 	docker compose -f tests/e2e-online-obstacles-docker-compose.yml down
 
 e2e-tests: e2e-offline e2e-online ## Запуск сквозных тестов e2e-offline и e2e-online

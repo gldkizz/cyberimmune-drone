@@ -92,8 +92,10 @@ int initServerConnector() {
 
     mosqpp::lib_init();
     publisher = new mosqpp::mosquittopp();
+    publisher->username_pw_set(MQTT_USERNAME, MQTT_PASSWORD);
     publisher->connect(MQTT_IP, publishPort, 3600);
     subscriber = new MqttSubscriber();
+    subscriber->username_pw_set(MQTT_USERNAME, MQTT_PASSWORD);
     subscriber->connect(MQTT_IP, publishPort, 3600);
 
     if (strlen(BOARD_ID))
