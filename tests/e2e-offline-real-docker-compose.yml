@@ -6,11 +6,9 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    container_name: mavproxy
+    container_name: mavproxy-demo-e2e
     command: expect /home/user/tests/e2e-offline-real.exp
     working_dir: /home/user/mavproxy
     user: user
     restart: "no"
-    ports:
-      - "14550:14550/udp"
 #################################################
