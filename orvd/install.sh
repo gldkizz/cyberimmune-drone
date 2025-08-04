@@ -32,6 +32,9 @@ apt-get -y install python3 \
         python3-paho-mqtt
 
 cp ../mqtt-server/default.conf /etc/mosquitto/conf.d/default.conf
+cp ../mqtt-server/aclfile /etc/mosquitto/conf.d/aclfile
+cp ../mqtt-server/pwfile /etc/mosquitto/conf.d/pwfile
+
 systemctl restart mosquitto
 
 apt-get -y install libapache2-mod-wsgi-py3
