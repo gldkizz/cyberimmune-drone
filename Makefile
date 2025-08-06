@@ -134,7 +134,7 @@ start-mavproxy-client: ## Запуск MAVProxy как ground control с гра�
 
 start-mavproxy-client-real: ## Запуск MAVProxy как ground control с графикой
 	xhost +local:
-	docker run --name mavproxy-client -w /home/user/mavproxy --user user --network host -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY -it --rm simulator /bin/bash -c "mavproxy.py --master udp:0.0.0.0:14550 --logfile /home/user/mav.tlog --console --map --load-module=horizon --load-module=buttons" || true
+	docker run --name mavproxy-client -w /home/user/mavproxy --user user -p 14550:14550/udp -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY -it --rm simulator /bin/bash -c "mavproxy.py --master udp:0.0.0.0:14550 --logfile /home/user/mav.tlog --console --map --load-module=horizon --load-module=buttons" || true
 	xhost -local:
 
 start-mavproxy-client-real-demo: ## Запуск MAVProxy как ground control с графикой
