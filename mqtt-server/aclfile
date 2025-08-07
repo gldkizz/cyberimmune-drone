@@ -15,6 +15,8 @@ topic readwrite api/nmission/response/+
 topic readwrite api/nmission/request/+
 topic readwrite api/arm/response/+
 topic readwrite api/arm/request/+
+topic readwrite api/rfid/+
+topic readwrite api/connection_status
 
 user infopanel
 topic readwrite ping/+
@@ -28,6 +30,8 @@ topic readwrite api/nmission/response/+
 topic readwrite api/nmission/request/+
 topic readwrite api/arm/response/+
 topic readwrite api/arm/request/+
+topic readwrite api/rfid/+
+topic readwrite api/connection_status
 
 user 52_58_00_12_34_bb
 topic readwrite ping/52:58:00:12:34:bb
