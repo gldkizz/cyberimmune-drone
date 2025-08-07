@@ -58,6 +58,7 @@ class MQTTTopic:
     FORBIDDEN_ZONES = 'api/forbidden_zones'
     FMISSION_KOS = 'api/fmission_kos/{id}'
     AUTH = 'api/auth/{id}'
+    CONNECTION_STATUS = 'api/connection_status'
     
 class APIRoute:
     NMISSION = '/api/nmission'

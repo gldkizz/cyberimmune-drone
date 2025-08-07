@@ -14,7 +14,7 @@ from utils import (
     get_sha256_hex, get_new_polygon_feature, compute_and_save_forbidden_zones_delta
 )
 from .mqtt_handlers import (
-    mqtt_publish_flight_state, mqtt_publish_forbidden_zones, mqtt_publish_ping, mqtt_send_mission
+    mqtt_publish_flight_state, mqtt_publish_forbidden_zones, mqtt_publish_ping, mqtt_send_mission, mqtt_publish_connection_status
 )
 
 
@@ -496,6 +496,7 @@ def get_flight_info_response_mode_handler():
 
 def toggle_flight_info_response_mode_handler():
     context.flight_info_response = not context.flight_info_response
+    mqtt_publish_connection_status()
     return OK
 
 def get_auto_mission_approval_handler():

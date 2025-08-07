@@ -68,3 +68,7 @@ def mqtt_send_mission(id: str, *args, **kwargs):
                 message = f'$FlightMission {"&".join(mission_steps)}'
                 message = f'{message}#{hex(sign(message, KeyGroup.ORVD))[2:]}'
                 mqtt.publish_message(MQTTTopic.FMISSION_KOS.format(id=id), message)
+                
+def mqtt_publish_connection_status(*args, **kwargs):
+    message = { 'status': context.flight_info_response }
+    mqtt.publish_message(MQTTTopic.CONNECTION_STATUS, message)
