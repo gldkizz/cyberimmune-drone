@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
     container_name: arducopter
-    command: /home/user/ardupilot/sitl/arducopter -S --model + --speedup 1 --slave 0  --serial5=tcp:5765:wait --serial6=tcp:5766:wait --serial7=tcp:5767:wait --defaults copter.parm --sim-address=172.28.0.2 --home=60.0025652,27.8573543,0.00,90 -I0
+    command: /home/user/ardupilot/sitl/arducopter -S --model + --speedup 1 --slave 0  --serial5=tcp:5765:wait --serial6=tcp:5766:wait --serial7=tcp:5767:wait --defaults copter.parm --sim-address=172.28.0.2 --home=60.0025610,27.8572915,0.00,0 -I0
     working_dir: /home/user/ardupilot
     user: user
     restart: always
