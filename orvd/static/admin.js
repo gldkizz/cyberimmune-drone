@@ -145,6 +145,13 @@ let delay_marker_style = new ol.style.Style({
 
 let polyline_style = new ol.style.Style({
   stroke: new ol.style.Stroke({
+    color: [255, 255, 255, 255],
+    width: 4
+  })
+});
+
+let polyline_style_inner = new ol.style.Style({
+  stroke: new ol.style.Stroke({
     color: [0, 0, 0, 255],
     width: 2
   })
@@ -340,7 +347,7 @@ function add_polyline(line_path) {
     geometry: polyline,
     description: null
   });
-  polyline_feature.setStyle(polyline_style);
+  polyline_feature.setStyle([polyline_style, polyline_style_inner]);
   markers.getSource().addFeature(polyline_feature);
 }
 
