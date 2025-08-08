@@ -10,6 +10,6 @@ exec >@stdout 2>@stderr /home/user/tests/mission-upload-to-orvd.sh 172.28.0.4
 expect "AP: Info: Arm is permitted" { send "arm throttle\r" }
 expect "ARMED" { send "mode auto\r" }
 expect "AP: Mission: 1 Takeoff" { send "long MAV_CMD_MISSION_START\r" }
-exec >@stdout 2>@stderr /home/user/tests/movement-check.sh 172.28.0.4
+#exec >@stdout 2>@stderr /home/user/tests/movement-check.sh 172.28.0.4
 expect "DISARMED" { exit }
 

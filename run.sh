@@ -20,7 +20,7 @@ if [[ $* == *"--no-server"* ]]
 	then
 		tmux send-keys -t flight_controller "cd kos; ./cross-build.sh --target sim --mode offline" Enter
 	else
-		tmux send-keys -t flight_controller "cd kos; ./cross-build.sh --target sim --mode online --mqtt-username=${KOS_MQTT_USERNAME} --mqtt-password=${KOS_MQTT_PASSWORD}" Enter
+		tmux send-keys -t flight_controller "cd kos; ./cross-build.sh --target sim --mode online --mqtt-username ${KOS_MQTT_USERNAME} --mqtt-password ${KOS_MQTT_PASSWORD}" Enter
 fi
 tmux split-window -v -p 50 -t flight_controller
 if [[ $* == *"--with-obstacles"* ]]
