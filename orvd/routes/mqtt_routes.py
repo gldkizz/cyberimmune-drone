@@ -1,5 +1,6 @@
 import json
 from urllib.parse import parse_qs
+from context import context
 from constants import MQTTTopic, APIRoute, KeyGroup
 from extensions import mqtt_client as mqtt
 from utils import verify, sign, signed_request
@@ -53,6 +54,8 @@ def arm_request(client, userdata, msg, **kwargs):
         
         response = signed_request(handler_func=arm_handler, verifier_func=verify, signer_func=sign,
                             query_str=f"{APIRoute.ARM}?id={id}", key_group=f"{KeyGroup.KOS}{id}", sig=payload['sig'], id=id)
+        if not context.flight_info_response:
+            return
         if len(response) == 2 and response[1] == 200:
             mqtt.publish_message(MQTTTopic.ARM_RESPONSE.format(id=id), response[0])
     except Exception as e:
@@ -91,6 +94,8 @@ def revise_mission(client, userdata, msg, **kwargs):
         response = signed_request(handler_func=revise_mission_handler, verifier_func=verify, signer_func=sign,
                                     query_str=f"{APIRoute.NMISSION}?id={id}&mission={payload.get('mission')}",
                                     key_group=f'{KeyGroup.KOS}{id}', sig=payload['sig'], id=id, mission=payload.get('mission'))
+        if not context.flight_info_response:
+            return
         if len(response) == 2 and response[1] == 200:
             mqtt.publish_message(MQTTTopic.NMISSION_RESPONSE.format(id=id), response[0])
     except Exception as e:

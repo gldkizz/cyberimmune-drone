@@ -1,4 +1,5 @@
 import logging
+import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.job import Job as APJob
 from apscheduler.jobstores.base import JobLookupError
@@ -82,6 +83,47 @@ class TaskSchedulerClient:
             return job
         except Exception as e:
             logger.error(f"Error adding/updating interval task '{task_name}': {e}", exc_info=True)
+            return None
+
+    def add_oneshot_task(
+        self,
+        task_name: str,
+        seconds: int,
+        func: Callable,
+        args: Optional[tuple] = None,
+        kwargs: Optional[TypingDict[str, Any]] = None,
+        job_options: Optional[TypingDict[str, Any]] = None
+    ) -> Optional[APJob]:
+        if not self.app:
+            logger.error("Scheduler not initialized with Flask app. Call init_app first.")
+            return None
+
+        if not isinstance(seconds, int) or seconds < 0:
+            logger.error(f"Invalid delay for task '{task_name}': seconds must be a non-negative integer.")
+            return None
+
+        effective_args = args if args is not None else ()
+        effective_kwargs = kwargs if kwargs is not None else {}
+
+        wrapped_func = lambda: self._execute_with_context(func, effective_args, effective_kwargs)
+
+        options = job_options if job_options else {}
+        run_date = datetime.datetime.now() + datetime.timedelta(seconds=seconds)
+
+        try:
+            job = self.scheduler.add_job(
+                wrapped_func,
+                trigger='date',
+                run_date=run_date,
+                id=task_name,
+                name=task_name,
+                replace_existing=True,
+                **options
+            )
+            logger.info(f"One-shot task '{task_name}' scheduled to run at {run_date}.")
+            return job
+        except Exception as e:
+            logger.error(f"Error scheduling one-shot task '{task_name}': {e}", exc_info=True)
             return None
 
     def find_task_by_name(self, task_name: str) -> Optional[APJob]:

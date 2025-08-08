@@ -27,7 +27,7 @@
 
 /** \cond */
 #define NAME_MAX_LENGTH 64
-#define LNS_ANGLE 60
+#define LNS_ANGLE 90
 #define LNS_LAT 600025472
 #define LNS_LNG 278573184
 

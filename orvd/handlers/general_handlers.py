@@ -5,12 +5,13 @@ from constants import (
 from db.dao import (
     add_and_commit, add_changes, commit_changes, delete_entity, get_entity_by_key,
     get_entities_by_field, get_entities_by_field_with_order, save_public_key,
-    get_key
+    get_key, flush
 )
 from db.models import Mission, MissionStep, MissionSenderPublicKeys, Uav, UavTelemetry, Event
 from utils import (
     generate_keys, read_mission, encode_mission, create_csv_from_telemetry
 )
+from .mqtt_handlers import mqtt_send_mission
 
 
 def key_ms_exchange_handler(id: str):
@@ -66,13 +67,16 @@ def fmission_ms_handler(id: str, mission_str: str, **kwargs):
             delete_entity(mission_entity)
             commit_changes()
         
-        mission_entity = Mission(uav_id=id, is_accepted=False)
+        mission_entity = Mission(uav_id=id, is_accepted=context.auto_mission_approval)
         add_changes(mission_entity)
         encoded_mission = encode_mission(mission_list)
         for idx, cmd in enumerate(encoded_mission):
             mission_step_entity = MissionStep(mission_id=id, step=idx, operation=cmd)
             add_changes(mission_step_entity)
         commit_changes()
+        flush()
+        if context.auto_mission_approval:
+            mqtt_send_mission(id)
         
     return mission_verification_status
 

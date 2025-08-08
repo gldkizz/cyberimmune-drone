@@ -49,8 +49,7 @@ class ButtonsFrame(wx.Frame):
         self.button_5 = wx.Button(self, wx.ID_ANY, "Stabilize", size=button_size)
         grid_sizer_1.Add(self.button_5, 0, 0, 0)
 
-        # empty button
-        self.button_6 = wx.Button(self, wx.ID_ANY, "", size=button_size)
+        self.button_6 = wx.Button(self, wx.ID_ANY, "LAND", size=button_size)
         grid_sizer_1.Add(self.button_6, 0, 0, 0)
 
         self.button_7 = wx.Button(self, wx.ID_ANY, "FORCE DISARM", size=button_size)
@@ -74,6 +73,7 @@ class ButtonsFrame(wx.Frame):
 
         self.Bind(wx.EVT_BUTTON, self.button_disarm_logic, self.button_4)
         self.Bind(wx.EVT_BUTTON, self.button_mode_stabilize_logic, self.button_5)
+        self.Bind(wx.EVT_BUTTON, self.button_mode_land_logic, self.button_6)
 
         self.Bind(wx.EVT_BUTTON, self.button_force_disarm_logic, self.button_7)
         self.Bind(wx.EVT_BUTTON, self.button_mode_guided_logic, self.button_8)
@@ -114,6 +114,12 @@ class ButtonsFrame(wx.Frame):
     # https://mavlink.io/en/messages/common.html#MAV_MODE_FLAG
     def button_mode_guided_logic(self, event):
         cmd = "mode guided"
+        self.mpstate.functions.process_stdin(cmd)
+
+    # https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE
+    # https://mavlink.io/en/messages/common.html#MAV_MODE_FLAG
+    def button_mode_land_logic(self, event):
+        cmd = "mode land"
         self.mpstate.functions.process_stdin(cmd)
 
     # https://mavlink.io/en/messages/common.html#MAV_CMD_MISSION_START

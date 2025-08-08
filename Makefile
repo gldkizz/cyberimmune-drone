@@ -42,14 +42,14 @@ docker-image-ntp-server: ## Сборка образа docker с NTP сервер
 	docker build -f ntp-server.Dockerfile -t ntp-server ./
 
 clean-docker-compose: ## Подчистка docker-compose после запуска проекта или тестов
-	docker-compose -f docker-compose-offline.yml down
-	docker-compose -f docker-compose-online.yml down
-	docker-compose -f docker-compose-offline-obstacles.yml down
-	docker-compose -f docker-compose-online-obstacles.yml down
-	docker-compose -f tests/e2e-offline-docker-compose.yml down
-	docker-compose -f tests/e2e-online-docker-compose.yml down
-	docker-compose -f tests/e2e-offline-obstacles-docker-compose.yml down
-	docker-compose -f tests/e2e-online-obstacles-docker-compose.yml down
+	docker compose -f docker-compose-offline.yml down
+	docker compose -f docker-compose-online.yml down
+	docker compose -f docker-compose-offline-obstacles.yml down
+	docker compose -f docker-compose-online-obstacles.yml down
+	docker compose -f tests/e2e-offline-docker-compose.yml down
+	docker compose -f tests/e2e-online-docker-compose.yml down
+	docker compose -f tests/e2e-offline-obstacles-docker-compose.yml down
+	docker compose -f tests/e2e-online-obstacles-docker-compose.yml down
 
 clean-containers: clean-docker-compose ## clean-docker-compose + удаление контейнеров
 	docker ps -a -q |xargs docker rm
@@ -63,28 +63,28 @@ clean-network: clean-docker-compose ## clean-docker-compose + удаление �
 clean: clean-containers clean-images clean-network ## Запускает все три цели clean-*
 
 offline: docker ## Запуск проекта в режиме offline
-	docker-compose -f docker-compose-offline.yml up
+	docker compose -f docker-compose-offline.yml up
 
 online: docker ## Запуск проекта в режиме online
-	docker-compose -f docker-compose-online.yml up
+	docker compose --env-file default.env -f docker-compose-online.yml up
 
 offline-obstacles: docker ## Запуск проекта в режиме offline с киберпрепятствиями
-	docker-compose -f docker-compose-offline-obstacles.yml up
+	docker compose -f docker-compose-offline-obstacles.yml up
 
 online-obstacles: docker ## Запуск проекта в режиме online с киберпрепятствиями
-	docker-compose -f docker-compose-online-obstacles.yml up
+	docker compose --env-file default.env -f docker-compose-online-obstacles.yml up
 
 offline-multi: docker
-	docker-compose -f docker-compose-offline-multi.yml up
+	docker compose -f docker-compose-offline-multi.yml up
 
 online-multi: docker
-	docker-compose -f docker-compose-online-multi.yml up
+	docker compose --env-file default.env -f docker-compose-online-multi.yml up
 
 docker-compose-stop: ## Остановка docker-compose проектов
-	docker-compose stop
+	docker compose stop
 
 docker-compose-up: docker docker-compose-stop ## Запуск docker-compose проектов
-	docker-compose up -d
+	docker compose up -d
 
 network: ## Создание виртуальной сети simulator для docker
 	docker network rm -f simulator
@@ -114,6 +114,9 @@ shell-orvd:
 shell-orvd-real:
 	docker run --volume="`pwd`:/home/user/" --name orvd -w /home/user/orvd --net simulator -p 8080:8080 --ip 172.28.0.4 -it --rm orvd /bin/bash -i
 
+mqtt-password-generator:
+	while read -r one two; do mosquitto_passwd -b mqtt-server/pwfile $$one $$two; done < mqtt-server/pass-list.txt
+
 start-mqtt-server: ## запуск mqtt сервера в docker контейнере
 	docker run --name mqtt-server -p 1883:1883 -p 8883:8883 --rm mqtt-server
 
@@ -129,38 +132,48 @@ start-mavproxy-client: ## Запуск MAVProxy как ground control с гра�
 	docker run --name mavproxy-client -w /home/user/mavproxy --user user --net host -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY -it --rm simulator /bin/bash -c "mavproxy.py --master udp:0.0.0.0:14550 --logfile /home/user/mav.tlog --console --map --load-module=horizon --load-module=buttons" || true
 	xhost -local:
 
+start-mavproxy-client-real: ## Запуск MAVProxy как ground control с графикой
+	xhost +local:
+	docker run --name mavproxy-client -w /home/user/mavproxy --user user -p 14550:14550/udp -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY -it --rm simulator /bin/bash -c "mavproxy.py --master udp:0.0.0.0:14550 --logfile /home/user/mav.tlog --console --map --load-module=horizon --load-module=buttons" || true
+	xhost -local:
+
+start-mavproxy-client-real-demo: ## Запуск MAVProxy как ground control с графикой
+	xhost +local:
+	docker run --name mavproxy-client -w /home/user/mavproxy --user user --network host -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$$DISPLAY -it --rm simulator /bin/bash -c "mavproxy.py --master udpout:192.168.0.100:14550 --logfile /home/user/mav.tlog --console --map --load-module=horizon --load-module=buttons" || true
+	xhost -local:
+
 e2e-offline: docker-image ## Запуск сквозных тестов в режиме offline
-	docker-compose -f tests/e2e-offline-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
-	docker-compose -f tests/e2e-offline-docker-compose.yml down
+	docker compose -f tests/e2e-offline-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
+	docker compose -f tests/e2e-offline-docker-compose.yml down
 
 e2e-offline-real: ## Запуск сквозных тестов в режиме offline на квадрокоптере
-	docker-compose -f tests/e2e-offline-real-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
-	docker-compose -f tests/e2e-offline-real-docker-compose.yml down
+	docker compose -f tests/e2e-offline-real-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
+	docker compose -f tests/e2e-offline-real-docker-compose.yml down
 
 e2e-online: docker-image ## Запуск сквозных тестов в режиме online
-	docker-compose -f tests/e2e-online-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
-	docker-compose -f tests/e2e-online-docker-compose.yml down
+	docker compose --env-file default.env -f tests/e2e-online-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
+	docker compose -f tests/e2e-online-docker-compose.yml down
 
 e2e-offline-obstacles: docker-image ## Запуск сквозных тестов в режиме offline с киберпрепятствиями
-	docker-compose -f tests/e2e-offline-obstacles-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
-	docker-compose -f tests/e2e-offline-obstacles-docker-compose.yml down
+	docker compose -f tests/e2e-offline-obstacles-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
+	docker compose -f tests/e2e-offline-obstacles-docker-compose.yml down
 
 e2e-online-obstacles: docker-image ## Запуск сквозных тестов в режиме online с киберпрепятствиями
-	docker-compose -f tests/e2e-online-obstacles-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
-	docker-compose -f tests/e2e-online-obstacles-docker-compose.yml down
+	docker compose --env-file default.env -f tests/e2e-online-obstacles-docker-compose.yml up --abort-on-container-exit --exit-code-from mavproxy
+	docker compose -f tests/e2e-online-obstacles-docker-compose.yml down
 
 e2e-tests: e2e-offline e2e-online ## Запуск сквозных тестов e2e-offline и e2e-online
 
 unit-tests: docker-image-simulator ## Запуск unit тестов модуля безопасности
-	docker-compose -f tests/unit-tests-docker-compose.yml up --abort-on-container-exit --exit-code-from kos
-	docker-compose -f tests/unit-tests-docker-compose.yml down
+	docker compose -f tests/unit-tests-docker-compose.yml up --abort-on-container-exit --exit-code-from kos
+	docker compose -f tests/unit-tests-docker-compose.yml down
 
 unit-orvd-tests: docker-image-orvd ## Запуск unit тестов ОрВД
-	docker-compose -f tests/unit-orvd-tests-docker-compose.yml up --abort-on-container-exit --exit-code-from orvd
-	docker-compose -f tests/unit-orvd-tests-docker-compose.yml down
+	docker compose -f tests/unit-orvd-tests-docker-compose.yml up --abort-on-container-exit --exit-code-from orvd
+	docker compose -f tests/unit-orvd-tests-docker-compose.yml down
 
 pal-tests: docker-image ## Запуск PAL тестов модуля безопасности
-	docker-compose -f tests/pal-tests-docker-compose.yml up --abort-on-container-exit --exit-code-from kos
-	docker-compose -f tests/pal-tests-docker-compose.yml down
+	docker compose -f tests/pal-tests-docker-compose.yml up --abort-on-container-exit --exit-code-from kos
+	docker compose -f tests/pal-tests-docker-compose.yml down
 
 all-tests: e2e-tests unit-tests unit-orvd-tests pal-tests ## Запуск всех тестов
