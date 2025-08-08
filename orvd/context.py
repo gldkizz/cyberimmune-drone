@@ -1,4 +1,5 @@
 import logging
+import os
 from dataclasses import dataclass, field
 
 @dataclass
@@ -20,5 +21,31 @@ class Context:
     change_forbidden_zones_A: dict = field(default_factory=dict)
     change_forbidden_zones_B: dict = field(default_factory=dict)
     change_forbidden_zones_C: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        def _get_coords(env_var):
+            value = os.getenv(env_var)
+            if value:
+                try:
+                    lat, lon = map(float, value.split(','))
+                    return {'lat': lat, 'lon': lon}
+                except (ValueError, TypeError):
+                    logging.warning(f"Invalid format for {env_var}. Expected 'lat,lon'.")
+            return {}
+
+        if not self.permission_revoke_coords:
+            self.permission_revoke_coords = _get_coords('PERMISSION_REVOKE_COORDS')
+        
+        if not self.connection_break_coords:
+            self.connection_break_coords = _get_coords('CONNECTION_BREAK_COORDS')
+
+        if not self.change_forbidden_zones_A:
+            self.change_forbidden_zones_A = _get_coords('CHANGE_FORBIDDEN_ZONES_A')
+        
+        if not self.change_forbidden_zones_B:
+            self.change_forbidden_zones_B = _get_coords('CHANGE_FORBIDDEN_ZONES_B')
+
+        if not self.change_forbidden_zones_C:
+            self.change_forbidden_zones_C = _get_coords('CHANGE_FORBIDDEN_ZONES_C')
 
 context = Context()
