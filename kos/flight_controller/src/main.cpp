@@ -347,9 +347,9 @@ int main(void) {
     //The flight is need to be controlled from now on
     
     // Конфигурация защиты груза
-    const double TARGET_LAT = 60.0026880;
-    const double TARGET_LON = 27.8575360;
-    const double EPSILON = 0.00001; // погрешность
+    const int32_t TARGET_LAT = 600026420;
+    const int32_t TARGET_LON = 278569855;
+    const double EPSILON = 1000; // погрешность
     setCargoLock(0);
     bool cargoLocked = true; // флаг блокировки сброса груза
 
@@ -358,8 +358,8 @@ int main(void) {
     const float SPEED_TOLERANCE = 0.2f; // допустимое превышение скорости
     const float SPEED_CHECK_INTERVAL_MS = 500; // мс
     const int EMERGENCY_RESPONSE_DELAY_MS = 1000; // задержка экстренного реагирования
-    bool speedViolationDetected = false;
-    // int32_t lastSpeedCheckTime = 0;
+    static uint32_t lastSpeedCheckTime = 0;    
+    static bool speedViolationDetected = false;
 
     // Конфигурация защиты высоты
     const int32_t MAX_ALTITUDE = 200;
@@ -369,10 +369,15 @@ int main(void) {
     while (true) {
         // 1. Проверка сброса груза
         int32_t latitude, longitude, currentAlt;
-        bool coordsValid = getCoords(latitude,longitude,currentAlt);
+        // bool coordsValid = getCoords(latitude,longitude,currentAlt);
         
-        if (coordsValid) {
-            bool inZone = (fabs(latitude - TARGET_LAT) < EPSILON) && (fabs(longitude - TARGET_LON) < EPSILON);
+        if (getCoords(latitude,longitude,currentAlt)) {
+            bool inZone = (abs(latitude - TARGET_LAT) < EPSILON) && (abs(longitude - TARGET_LON) < EPSILON);
+            // char coordMsg[128];
+            // snprintf(coordMsg, sizeof(coordMsg), 
+            //         "Coords: lat=%.7f, lon=%.7f, alt=%d, inZone=%d, cargoLocked=%d",
+            //         latitude/1e7, longitude/1e7, currentAlt, inZone, cargoLocked);
+            // logEntry(coordMsg, ENTITY_NAME, LogLevel::LOG_INFO);
             if(inZone && cargoLocked) {
                 setCargoLock(1);
                 cargoLocked = false;
@@ -389,7 +394,11 @@ int main(void) {
             // 2. Проверка превышения высоты
             if(currentAlt > MAX_ALTITUDE + ALTITUDE_TOLERANCE) {
                 if(!altitudeViolationDetected) {
-                    logEntry("Altitude violation detected! Initiating safety protocol", ENTITY_NAME, LogLevel::LOG_WARNING);
+                    char altMsg[128];
+                    snprintf(altMsg, sizeof(altMsg),
+                            "ALTITUDE VIOLATION: Current %.2f m/s (Allowed %.2f ± %.2f m/s)",
+                            currentAlt, MAX_ALTITUDE, ALTITUDE_TOLERANCE);
+                    logEntry(altMsg, ENTITY_NAME, LogLevel::LOG_WARNING);
                     altitudeViolationDetected = true;
                     changeAltitude(static_cast<int32_t>(MAX_ALTITUDE));
                 }
@@ -405,26 +414,51 @@ int main(void) {
 
         // 3. Проверка скорости
         float currentSpeed = 0.0f;
-        if (getEstimatedSpeed(currentSpeed)) {
-            if(currentSpeed > ALLOWED_SPEED + SPEED_TOLERANCE || currentSpeed < ALLOWED_SPEED - SPEED_TOLERANCE) {
-                if(!speedViolationDetected) {
-                    speedViolationDetected = true;
-    
-                    // Снижаем скорость
-                    changeSpeed(static_cast<int32_t>(ALLOWED_SPEED * 100));
+        uint32_t currentTime = getCurrentTime();
+        if (currentTime - lastSpeedCheckTime >= SPEED_CHECK_INTERVAL_MS) {
+            lastSpeedCheckTime = currentTime;
+        
+            if (getEstimatedSpeed(currentSpeed)) {
+                bool isViolation = (currentSpeed > ALLOWED_SPEED + SPEED_TOLERANCE) || 
+                                (currentSpeed < ALLOWED_SPEED - SPEED_TOLERANCE);
+
+                if (isViolation) {
+                    if (!speedViolationDetected) {
+                        // Форматируем информативное сообщение
+                        char speedMsg[128];
+                        snprintf(speedMsg, sizeof(speedMsg),
+                                "SPEED VIOLATION: Current %.2f m/s (Allowed %.2f ± %.2f m/s)",
+                                currentSpeed, ALLOWED_SPEED, SPEED_TOLERANCE);
+                        
+                        logEntry(speedMsg, ENTITY_NAME, LogLevel::LOG_WARNING);
+                        speedViolationDetected = true;
+                        
+                        // Корректируем скорость
+                        changeSpeed(static_cast<int32_t>(ALLOWED_SPEED * 100));
+                        
+                        // Добавляем задержку для стабилизации
+                        std::this_thread::sleep_for(
+                            std::chrono::milliseconds(EMERGENCY_RESPONSE_DELAY_MS));
+                    }
+                } else {
+                    if (speedViolationDetected) {
+                        logEntry("Speed returned to normal limits", ENTITY_NAME, LogLevel::LOG_INFO);
+                        speedViolationDetected = false;
+                    }
+                    // Логируем текущую скорость (для отладки)
+                    char normalMsg[64];
+                    snprintf(normalMsg, sizeof(normalMsg), 
+                            "Current speed: %.2f m/s (normal)", currentSpeed);
+                    logEntry(normalMsg, ENTITY_NAME, LogLevel::LOG_DEBUG);
                 }
             } else {
-                if(speedViolationDetected) {
-                    logEntry("Speed returned to normal limits", ENTITY_NAME, LogLevel::LOG_INFO);
-                    speedViolationDetected = false;
-                }
+                logEntry("Failed to get speed data - activating safety mode", 
+                        ENTITY_NAME, LogLevel::LOG_ERROR);
+                pauseFlight();
             }
-        } else {
-            logEntry("Failed to get speed data - activating safety mode", ENTITY_NAME, LogLevel::LOG_WARNING);
-            pauseFlight();
         }
 
-        // usleep(100000);
+        usleep(100000);
     }
 
     return EXIT_SUCCESS;
