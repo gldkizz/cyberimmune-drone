@@ -54,6 +54,11 @@ sed -i '$a export ADMIN_LOGIN='$ADMIN_LOGIN /etc/apache2/envvars
 sed -i '$a export ADMIN_PASSW='$ADMIN_PASSW /etc/apache2/envvars
 echo "export MQTT_USERNAME=${ORVD_MQTT_USERNAME}" >> /etc/apache2/envvars
 echo "export MQTT_PASSWORD=${ORVD_MQTT_PASSWORD}" >> /etc/apache2/envvars
+echo "export PERMISSION_REVOKE_COORDS: 60.00261500,27.85725550" >> /etc/apache2/envvars
+echo "export CONNECTION_BREAK_COORDS: 60.00261500,27.85711150" >> /etc/apache2/envvars
+echo "export CHANGE_FORBIDDEN_ZONES_A: 60.0025610,27.8572915" >> /etc/apache2/envvars
+echo "export CHANGE_FORBIDDEN_ZONES_B: 60.00264200,27.85714750" >> /etc/apache2/envvars
+echo "export CHANGE_FORBIDDEN_ZONES_C: 60.00258800,27.85702150" >> /etc/apache2/envvars
 
 systemctl restart apache2
 
