@@ -179,6 +179,39 @@ int askForMissionApproval(char* mission, int& result) {
     return 1;
 }
 
+int secureMissionUpdate(char* newMission) {
+    char logBuffer[256] = {0};
+    int approvalResult = 0;
+    
+    // 1. Проверка подписи
+    uint8_t authenticity = 0;
+    if (!checkSignature(newMission, authenticity) || !authenticity) {
+        logEntry("Mission signature verification failed", ENTITY_NAME, LogLevel::LOG_WARNING);
+        return 0;
+    }
+    
+    // 2. Запрос подтверждения от сервера
+    if (!askForMissionApproval(newMission, approvalResult)) {
+        logEntry("Failed to get mission approval from server", ENTITY_NAME, LogLevel::LOG_WARNING);
+        return 0;
+    }
+    
+    if (!approvalResult) {
+        logEntry("Server rejected mission update", ENTITY_NAME, LogLevel::LOG_WARNING);
+        return 0;
+    }
+    
+    // 3. Загрузка новой миссии
+    if (!loadMission(newMission)) {
+        logEntry("Failed to load approved mission", ENTITY_NAME, LogLevel::LOG_ERROR);
+        return 0;
+    }
+    
+    logEntry("Mission successfully updated with server approval", ENTITY_NAME, LogLevel::LOG_INFO);
+    printMission();
+    return 1;
+}
+
 /**
  * \~English Security module main loop. Waits for all other components to initialize. Authenticates
  * on the ATM server and receives the mission from it. After a mission and an arm request from the autopilot
@@ -366,6 +399,10 @@ int main(void) {
     const int32_t ALTITUDE_TOLERANCE = 10;
     bool altitudeViolationDetected = false;
 
+    // Конфигурация проверки смены маршрута
+    char currentMission[4096] = {0};
+    strncpy(currentMission, subscriptionBuffer, 4096);
+
     while (true) {
         // 1. Проверка сброса груза
         int32_t latitude, longitude, currentAlt;
@@ -396,7 +433,7 @@ int main(void) {
                 if(!altitudeViolationDetected) {
                     char altMsg[128];
                     snprintf(altMsg, sizeof(altMsg),
-                            "ALTITUDE VIOLATION: Current %.2f m/s (Allowed %.2f ± %.2f m/s)",
+                            "ALTITUDE VIOLATION: Current %.2f (Allowed %.2f ± %.2f)",
                             currentAlt, MAX_ALTITUDE, ALTITUDE_TOLERANCE);
                     logEntry(altMsg, ENTITY_NAME, LogLevel::LOG_WARNING);
                     altitudeViolationDetected = true;
@@ -449,13 +486,51 @@ int main(void) {
                     char normalMsg[64];
                     snprintf(normalMsg, sizeof(normalMsg), 
                             "Current speed: %.2f m/s (normal)", currentSpeed);
-                    logEntry(normalMsg, ENTITY_NAME, LogLevel::LOG_DEBUG);
+                    logEntry(normalMsg, ENTITY_NAME, LogLevel::LOG_INFO); // TODO: Поменять на LOG_INFO
                 }
             } else {
                 logEntry("Failed to get speed data - activating safety mode", 
                         ENTITY_NAME, LogLevel::LOG_ERROR);
                 pauseFlight();
             }
+        }
+
+        // 4. Проверка обновлений миссии
+        if (receiveSubscription("api/fmission_kos/", subscriptionBuffer, 4096)) {
+        // Сначала проверим, что буфер не пустой
+        if (strlen(subscriptionBuffer) > 0) {
+            logEntry("Received mission update", ENTITY_NAME, LogLevel::LOG_DEBUG);
+            
+            // Проверяем подпись через существующий механизм
+            uint8_t authenticity = 0;
+            if (!checkSignature(subscriptionBuffer, authenticity) || !authenticity) {
+                logEntry("Mission signature verification failed", ENTITY_NAME, LogLevel::LOG_WARNING);
+            } else {
+                // Используем API endpoint для проверки миссии
+                char missionCheckUrl[512];
+                snprintf(missionCheckUrl, sizeof(missionCheckUrl), 
+                        "/admin/mission_decision?id=%s&decision=0&token=ADMIN_TOKEN", 
+                        boardId);
+                
+                char response[1024];
+                if (sendRequest(missionCheckUrl, response, sizeof(response))) {
+                    if (strstr(response, "decision=1")) {
+                        if (loadMission(subscriptionBuffer)) {
+                            logEntry("Mission updated successfully", ENTITY_NAME, LogLevel::LOG_INFO);
+                            printMission();
+                        } else {
+                            logEntry("Failed to load new mission", ENTITY_NAME, LogLevel::LOG_ERROR);
+                        }
+                    } else {
+                        logEntry("Mission rejected by server", ENTITY_NAME, LogLevel::LOG_WARNING);
+                    }
+                } else {
+                    logEntry("Failed to verify mission with server", ENTITY_NAME, LogLevel::LOG_WARNING);
+                }
+            }
+            }
+            // Очищаем буфер после обработки
+            memset(subscriptionBuffer, 0, 4096);
         }
 
         usleep(100000);
