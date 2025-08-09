@@ -20,38 +20,47 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <thread>
+#include <chrono> //
 
 /** \cond */
 #define RETRY_DELAY_SEC 1
 #define RETRY_REQUEST_DELAY_SEC 5
 #define FLY_ACCEPT_PERIOD_US 500000
 
+// Конфигурация разрыва связи с ОРВД
+uint32_t lastSuccessfulContact = 0;
+const uint32_t CONNECTION_TIMEOUT_SEC = 3; // Таймаут разрыва связи
+bool connectionLost = false;
+
 char boardId[32] = {0};
 uint32_t sessionDelay;
 std::thread sessionThread, updateThread;
 /** \endcond */
 
+uint32_t getCurrentTime() {
+    using namespace std::chrono;
+    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+}
+
 /**
  * \~English Procedure that checks connection to the ATM server.
  * \~Russian Процедура, проверяющая наличие соединения с сервером ОРВД.
  */
+
 void pingSession() {
     sleep(sessionDelay);
-
     char pingMessage[1024] = {0};
     while (true) {
         if (!receiveSubscription("ping/", pingMessage, 1024)) {
             logEntry("Failed to receive ping through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
             continue;
         }
-
         if (strcmp(pingMessage, "")) {
             uint8_t authenticity = 0;
             if (!checkSignature(pingMessage, authenticity) || !authenticity) {
                 logEntry("Failed to check signature of ping received through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
                 continue;
             }
-
             //Processing delay until next session
             sessionDelay = parseDelay(strstr(pingMessage, "$Delay "));
         }
@@ -59,7 +68,6 @@ void pingSession() {
             //No response from the server
             //If server does not respond for 3 more seconds, flight must be paused until the response is received
         }
-
         sleep(sessionDelay);
     }
 }
@@ -76,7 +84,7 @@ void serverUpdateCheck() {
             if (strcmp(message, "")) {
                 uint8_t authenticity = 0;
                 if (checkSignature(message, authenticity) || !authenticity) {
-                    if (strstr(message, "$Flight -1#")) {
+                    if (strstr(message, "$Flight -1$")) {
                         logEntry("Emergency stop request is received. Disabling motors", ENTITY_NAME, LogLevel::LOG_INFO);
                         if (!enableBuzzer())
                             logEntry("Failed to enable buzzer", ENTITY_NAME, LogLevel::LOG_WARNING);
@@ -86,8 +94,8 @@ void serverUpdateCheck() {
                         }
                     }
                     //The message has two other possible options:
-                    //  "$Flight 1#" that requires to pause flight and remain landed
-                    //  "$Flight 0#" that requires to resume flight and keep flying
+                    //  "$Flight 1$" that requires to pause flight and remain landed
+                    //  "$Flight 0$" that requires to resume flight and keep flying
                     //Implementation is required to be done
                 }
                 else
@@ -140,7 +148,7 @@ int askForMissionApproval(char* mission, int& result) {
         return 0;
     }
 
-    snprintf(message, messageSize, "mission=%s&sig=0x%s", mission, signature);
+    snprintf(message, 512, "mission=%s&sig=0x%s", mission, signature);
     if (!publishMessage("api/nmission/request", message)) {
         logEntry("Failed to publish new mission through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
         free(message);
@@ -267,8 +275,7 @@ int main(void) {
         logEntry(logBuffer, ENTITY_NAME, LogLevel::LOG_WARNING);
         sleep(RETRY_DELAY_SEC);
     }
-
-    if (loadMission(subscriptionBuffer)) {
+        if (loadMission(subscriptionBuffer)) {
         logEntry("Successfully received mission from the server", ENTITY_NAME, LogLevel::LOG_INFO);
         printMission();
     }
@@ -338,9 +345,87 @@ int main(void) {
 
     //If we get here, the drone is able to arm and start the mission
     //The flight is need to be controlled from now on
+    
+    // Конфигурация защиты груза
+    const double TARGET_LAT = 60.0026880;
+    const double TARGET_LON = 27.8575360;
+    const double EPSILON = 0.00001; // погрешность
+    setCargoLock(0);
+    bool cargoLocked = true; // флаг блокировки сброса груза
 
-    while (true)
-        sleep(1000);
+    // Конфигурация защиты скорости
+    const float ALLOWED_SPEED = 0.5f; // 0.5 м/с
+    const float SPEED_TOLERANCE = 0.2f; // допустимое превышение скорости
+    const float SPEED_CHECK_INTERVAL_MS = 500; // мс
+    const int EMERGENCY_RESPONSE_DELAY_MS = 1000; // задержка экстренного реагирования
+    bool speedViolationDetected = false;
+    // int32_t lastSpeedCheckTime = 0;
+
+    // Конфигурация защиты высоты
+    const int32_t MAX_ALTITUDE = 200;
+    const int32_t ALTITUDE_TOLERANCE = 10;
+    bool altitudeViolationDetected = false;
+
+    while (true) {
+        // 1. Проверка сброса груза
+        int32_t latitude, longitude, currentAlt;
+        bool coordsValid = getCoords(latitude,longitude,currentAlt);
+        
+        if (coordsValid) {
+            bool inZone = (fabs(latitude - TARGET_LAT) < EPSILON) && (fabs(longitude - TARGET_LON) < EPSILON);
+            if(inZone && cargoLocked) {
+                setCargoLock(1);
+                cargoLocked = false;
+                logEntry("Cargo unlocked - in drop zone", ENTITY_NAME, LogLevel::LOG_INFO);
+            } else if (!inZone && !cargoLocked) {
+                setCargoLock(0);
+                cargoLocked = true;
+                logEntry("Cargo locked - left drop zone", ENTITY_NAME, LogLevel::LOG_INFO);
+            }
+
+            // логирование высоты
+            char altBuffer[64];
+
+            // 2. Проверка превышения высоты
+            if(currentAlt > MAX_ALTITUDE + ALTITUDE_TOLERANCE) {
+                if(!altitudeViolationDetected) {
+                    logEntry("Altitude violation detected! Initiating safety protocol", ENTITY_NAME, LogLevel::LOG_WARNING);
+                    altitudeViolationDetected = true;
+                    changeAltitude(static_cast<int32_t>(MAX_ALTITUDE));
+                }
+            } else if(altitudeViolationDetected) {
+                logEntry("Altitude returned to normal limits", ENTITY_NAME, LogLevel::LOG_INFO);
+                altitudeViolationDetected = false;
+            }
+        } else {
+            logEntry("Failed to get coordinates - locking cargo", ENTITY_NAME, LogLevel::LOG_WARNING);
+            setCargoLock(0);
+            cargoLocked = true;
+        }
+
+        // 3. Проверка скорости
+        float currentSpeed = 0.0f;
+        if (getEstimatedSpeed(currentSpeed)) {
+            if(currentSpeed > ALLOWED_SPEED + SPEED_TOLERANCE || currentSpeed < ALLOWED_SPEED - SPEED_TOLERANCE) {
+                if(!speedViolationDetected) {
+                    speedViolationDetected = true;
+    
+                    // Снижаем скорость
+                    changeSpeed(static_cast<int32_t>(ALLOWED_SPEED * 100));
+                }
+            } else {
+                if(speedViolationDetected) {
+                    logEntry("Speed returned to normal limits", ENTITY_NAME, LogLevel::LOG_INFO);
+                    speedViolationDetected = false;
+                }
+            }
+        } else {
+            logEntry("Failed to get speed data - activating safety mode", ENTITY_NAME, LogLevel::LOG_WARNING);
+            pauseFlight();
+        }
+
+        // usleep(100000);
+    }
 
     return EXIT_SUCCESS;
 }
