@@ -42,17 +42,21 @@ docker-image-ntp-server: ## Сборка образа docker с NTP сервер
 	docker build -f ntp-server.Dockerfile -t ntp-server ./
 
 clean-docker-compose: ## Подчистка docker-compose после запуска проекта или тестов
-	docker-compose -f docker-compose-offline.yml down
-	docker-compose -f docker-compose-online.yml down
-	docker-compose -f docker-compose-offline-obstacles.yml down
-	docker-compose -f docker-compose-online-obstacles.yml down
-	docker-compose -f tests/e2e-offline-docker-compose.yml down
-	docker-compose -f tests/e2e-online-docker-compose.yml down
-	docker-compose -f tests/e2e-offline-obstacles-docker-compose.yml down
-	docker-compose -f tests/e2e-online-obstacles-docker-compose.yml down
+	-docker-compose -f docker-compose-offline.yml down
+	-docker-compose -f docker-compose-online.yml down
+	-docker-compose -f docker-compose-offline-obstacles.yml down
+	-docker-compose -f docker-compose-online-obstacles.yml down
+	-docker-compose -f tests/e2e-offline-docker-compose.yml down
+	-docker-compose -f tests/e2e-online-docker-compose.yml down
+	-docker-compose -f tests/e2e-offline-obstacles-docker-compose.yml down
+	-docker-compose -f tests/e2e-online-obstacles-docker-compose.yml down
 
 clean-containers: clean-docker-compose ## clean-docker-compose + удаление контейнеров
-	docker ps -a -q |xargs docker rm
+	@if [ -n "$$(docker ps -aq)" ]; then \
+		docker rm -f $$(docker ps -aq); \
+	else \
+		echo "No containers to remove"; \
+	fi
 
 clean-images: ## Удаление образов docker
 	docker images --format json |jq -r ".ID" |xargs docker rmi

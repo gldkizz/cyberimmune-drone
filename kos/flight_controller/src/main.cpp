@@ -203,6 +203,7 @@ int askForMissionApproval(char *mission, int &result)
 
 int secureMissionUpdate(char *newMission)
 {
+    static char currentMission[4096] = {0};
     // 1. Validate signature
     uint8_t authenticity = 0;
     if (!checkSignature(newMission, authenticity) || !authenticity)
@@ -237,49 +238,50 @@ int secureMissionUpdate(char *newMission)
     }
 
     // 4. Load new mission
-    if (!loadMission(newMission)))
+    if (!loadMission(newMission))
         {
             logEntry("Failed to load new mission", ENTITY_NAME, LogLevel::LOG_ERROR);
             return 0;
         }
 
     // 5. Update stored mission
-    strncpy(currentMission, newMission, sizeof(currentMission));
+    strncpy(currentMission, newMission, sizeof(currentMission) - 1);
+    currentMission[sizeof(currentMission) - 1] = '\0';
     logEntry("Mission successfully updated", ENTITY_NAME, LogLevel::LOG_INFO);
     printMission();
     return 1;
 }
 
-// /**
-//  * Полный цикл обновления миссии
-//  */
-// void checkAndUpdateMission()
-// {
-//     char missionRequest[256];
-//     // snprintf(missionRequest, sizeof(missionRequest), "/api/fmission_kos?id=%s", boardId);
+/**
+ * Полный цикл обновления миссии
+ */
+void checkAndUpdateMission()
+{
+    char missionRequest[256];
+    // snprintf(missionRequest, sizeof(missionRequest), "/api/fmission_kos?id=%s", boardId);
 
-//     char signature[257] = {0};
-//     if (!signMessage(missionRequest, signature, sizeof(signature)))
-//     {
-//         logEntry("Failed to sign mission request", ENTITY_NAME, LogLevel::LOG_WARNING);
-//         return;
-//     }
+    char signature[257] = {0};
+    if (!signMessage(missionRequest, signature, sizeof(signature)))
+    {
+        logEntry("Failed to sign mission request", ENTITY_NAME, LogLevel::LOG_WARNING);
+        return;
+    }
 
-//     // snprintf(missionRequest, sizeof(missionRequest),
-//     //          "/api/fmission_kos?id=%s&sig=0x%s", boardId, signature);
+    // snprintf(missionRequest, sizeof(missionRequest),
+    //          "/api/fmission_kos?id=%s&sig=0x%s", boardId, signature);
 
-//     char missionResponse[4096] = {0};
-//     if (!sendRequest(missionRequest, missionResponse, sizeof(missionResponse)))
-//     {
-//         logEntry("Failed to receive mission", ENTITY_NAME, LogLevel::LOG_WARNING);
-//         return;
-//     }
+    char missionResponse[4096] = {0};
+    if (!sendRequest(missionRequest, missionResponse, sizeof(missionResponse)))
+    {
+        logEntry("Failed to receive mission", ENTITY_NAME, LogLevel::LOG_WARNING);
+        return;
+    }
 
-//     if (strlen(missionResponse) > 0)
-//     {
-//         secureMissionUpdate(missionResponse);
-//     }
-// }
+    if (strlen(missionResponse) > 0)
+    {
+        secureMissionUpdate(missionResponse);
+    }
+}
 
 /**
  * \~English Security module main loop. Waits for all other components to initialize. Authenticates
@@ -606,15 +608,15 @@ int main(void)
             }
         }
 
-        // // 4. Проверка обновлений миссии
-        // uint32_t currentTime = getCurrentTime();
+        // 4. Проверка обновлений миссии
+        uint32_t currentMissionTime = getCurrentTime();
 
-        // // Регулярная проверка миссии
-        // if (currentTime - lastMissionCheckTime >= 3000)
-        // {
-        //     lastMissionCheckTime = currentTime;
-        //     checkAndUpdateMission();
-        // }
+        // Регулярная проверка миссии
+        if (currentMissionTime - lastMissionCheckTime >= 3000)
+        {
+            lastMissionCheckTime = currentMissionTime;
+            checkAndUpdateMission();
+        }
 
         usleep(100000);
     }
