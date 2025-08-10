@@ -16,7 +16,7 @@ function transformToAssocArray( prmstr ) {
   return params;
 }
 
-var params = getSearchParameters();
+const params = getSearchParameters();
 
 document.getElementById('arm').onclick = arm;
 document.getElementById('disarm').onclick = disarm;
@@ -49,7 +49,7 @@ let active_id = null;
 let current_mission = null;
 let uav = null;
 let access_token = params.token;
-var current_state = null;
+let current_state = null;
 let forbidden_zones_display = false;
 let trajectoryFeature = null;
 
@@ -253,7 +253,7 @@ async function createGeoJSONLayer() {
   map.addLayer(geoJSONLayer);
 }
 
-var markers = new ol.layer.Vector({
+const markers = new ol.layer.Vector({
   source: new ol.source.Vector(),
 });
 
@@ -302,7 +302,7 @@ map.getTargetElement().addEventListener('pointerleave', function () {
 
 
 function clear_markers() {
-  var features = markers.getSource().getFeatures();
+  const features = markers.getSource().getFeatures();
   features.forEach((feature) => {
     const feature_id = feature.getId();
     if(feature_id === undefined || !feature.getId().includes('uav')) {
@@ -319,7 +319,7 @@ function add_marker(lat, lon, alt, marker_type) {
     uav.set('description', 'Высота: ' + alt);
     markers.getSource().addFeature(uav);
   } else {
-    var marker = new ol.Feature(new ol.geom.Point([lon, lat]));
+    const marker = new ol.Feature(new ol.geom.Point([lon, lat]));
     if (marker_type == 'home') {
       marker.setStyle(home_marker_style);
       marker.set('description', 'Высота: ' + alt);
@@ -341,8 +341,8 @@ function add_marker(lat, lon, alt, marker_type) {
 }
 
 function add_polyline(line_path) {
-  var polyline = new ol.geom.MultiLineString([line_path]);
-  var polyline_feature = new ol.Feature({
+  const polyline = new ol.geom.MultiLineString([line_path]);
+  const polyline_feature = new ol.Feature({
     name: "Thing",
     geometry: polyline,
     description: null
@@ -361,7 +361,7 @@ async function arm() {
   if (active_id != null) {
     let resp = await fetch("admin/arm_decision?id=" + active_id + "&decision=0" + "&token=" + access_token);
     console.log(await resp.text());
-    status_change();
+    getAllData();
   }
 }
 
@@ -369,7 +369,7 @@ async function disarm() {
   if (active_id != null) {
     let resp = await fetch("admin/arm_decision?id=" + active_id + "&decision=1" + "&token=" + access_token);
     console.log(await resp.text());
-    status_change();
+    getAllData();
   }
 }
 
@@ -378,7 +378,7 @@ async function kill_switch() {
   if (active_id != null) {
     let resp = await fetch("admin/kill_switch?id=" + active_id + "&token=" + access_token);
     console.log(await resp.text());
-    status_change();
+    getAllData();
   }
 }
 
@@ -529,17 +529,17 @@ async function get_mission(id) {
     }
     for (let idx = 0; idx < mission_list.length; ++idx) {
       if (mission_list[idx][0] == 'H') {
-        var lat = parseFloat(mission_list[idx][1]);
-        var lon = parseFloat(mission_list[idx][2]);
-        var alt = mission_list[idx][3];
+        const lat = parseFloat(mission_list[idx][1]);
+        const lon = parseFloat(mission_list[idx][2]);
+        const alt = mission_list[idx][3];
         add_marker(lat, lon, alt, 'home');
         mission_path.push([lon, lat]);
         // map.getView().setCenter([lon, lat]);
       }
       else if (mission_list[idx][0] == 'W') {
-        var lat = parseFloat(mission_list[idx][1]);
-        var lon = parseFloat(mission_list[idx][2]);
-        var alt = mission_list[idx][3];
+        const lat = parseFloat(mission_list[idx][1]);
+        const lon = parseFloat(mission_list[idx][2]);
+        const alt = mission_list[idx][3];
         if (idx < mission_list.length - 1 && mission_list[idx+1][0] == 'S') {
           add_marker(lat, lon, alt, 'servo');              
         } else if (idx < mission_list.length - 1 && mission_list[idx+1][0] == 'D') {
@@ -551,15 +551,15 @@ async function get_mission(id) {
         mission_path.push([lon, lat]);
       }
       else if (mission_list[idx][0] == 'I') {
-        var lat = parseFloat(mission_list[idx][1]);
-        var lon = parseFloat(mission_list[idx][2]);
-        var alt = mission_list[idx][3];
+        const lat = parseFloat(mission_list[idx][1]);
+        const lon = parseFloat(mission_list[idx][2]);
+        const alt = mission_list[idx][3];
         add_marker(lat, lon, alt, 'roi');
       }
       else if (mission_list[idx][0] == 'L'){
-        var lat = parseFloat(mission_list[idx][1]);
-        var lon = parseFloat(mission_list[idx][2]);
-        var alt = mission_list[idx][3];
+        const lat = parseFloat(mission_list[idx][1]);
+        const lon = parseFloat(mission_list[idx][2]);
+        const alt = mission_list[idx][3];
         add_marker(lat, lon, alt, 'regular');
       }         
     }
@@ -642,7 +642,7 @@ async function set_delay() {
   if (active_id != null && delay_value != null) {
     let resp = await fetch(`admin/set_delay?id=${active_id}&delay=${delay_value}&token=${access_token}`);
     console.log(await resp.text());
-    status_change();
+    getAllData();
   }
 }
 

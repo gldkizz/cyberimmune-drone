@@ -421,6 +421,7 @@ int main(void) {
     const double POI_CHECK_INTERVAL_MS = 500; // Интервал проверки POI (мс)
     uint32_t lastPoiCheckTime = getCurrentTime();
 
+
     while (true) {
         // 1. Проверка сброса груза
         int32_t latitude, longitude, currentAlt;
