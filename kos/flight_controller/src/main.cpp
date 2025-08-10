@@ -471,11 +471,11 @@ int main(void) {
                         logEntry("Speed returned to normal limits", ENTITY_NAME, LogLevel::LOG_INFO);
                         speedViolationDetected = false;
                     }
-                    // Логируем текущую скорость (для отладки)
-                    char normalMsg[64];
-                    snprintf(normalMsg, sizeof(normalMsg), 
-                            "Current speed: %.2f m/s (normal)", currentSpeed);
-                    logEntry(normalMsg, ENTITY_NAME, LogLevel::LOG_INFO); // TODO: Поменять на LOG_INFO
+                    // // Логируем текущую скорость (для отладки)
+                    // char normalMsg[64];
+                    // snprintf(normalMsg, sizeof(normalMsg), 
+                    //         "Current speed: %.2f m/s (normal)", currentSpeed);
+                    // logEntry(normalMsg, ENTITY_NAME, LogLevel::LOG_INFO); // TODO: Поменять на LOG_INFO
                 }
             } else {
                 logEntry("Failed to get speed data - activating safety mode", 
