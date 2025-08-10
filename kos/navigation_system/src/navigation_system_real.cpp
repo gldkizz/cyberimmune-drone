@@ -232,7 +232,7 @@ void getSensors() {
     uint8_t value;
     int mode, messageType, idx, latSign, lngSign;
     int32_t latitude, longitude;
-    char head[8], satsStr[8], dopStr[8], latStr[16], lngStr[16], speedStr[16], xStr[16], yStr[16], zStr[16];
+    char head[8], satsStr[8], dopStr[8], latStr[16], lngStr[16], speedStr[16], xStr[6], yStr[6], zStr[6];
 
     while (true) {
         read = true;
@@ -388,9 +388,9 @@ void getSensors() {
                 }
                 break;
             case 17: // X local coordinate
-                if (idx >= 16) {
+                if (idx >= 6) {
                     read = false;
-                    messageType = 0;;
+                    messageType = 0;
                 }
                 else if (value == ',') {
                     xStr[idx] = '\0';
@@ -403,7 +403,7 @@ void getSensors() {
                 }
                 break;
             case 18: // Y local coordinate
-                if (idx >= 16) {
+                if (idx >= 6) {
                     read = false;
                     messageType = 0;
                 }
@@ -418,7 +418,7 @@ void getSensors() {
                 }
                 break;
             case 19: // Z local coordinate
-                if (idx >= 16) {
+                if (idx >= 6) {
                     read = false;
                     messageType = 0;
                 }
