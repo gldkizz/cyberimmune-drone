@@ -405,16 +405,16 @@ int main(void) {
 
     // Точки интереса
     std::vector<PointOfInterest> pointsOfInterest = {
-        {600025970, 278572915, 100, false, false, 0, 0}, // Пример точки сканирования 1
-        {600025880, 278572015, 100, false, false, 0, 0},  // Пример точки сканирования 2
-        {600026150, 278572555, 100, false, false, 0, 0},   // Пример точки сканирования 3
-        {600026420, 278572915, 100, false, false, 0, 0},   // Пример точки сканирования 4
-        {600026420, 278571475, 100, false, false, 0, 0},   // Пример точки сканирования 5
-        {600026150, 278571115, 100, false, false, 0, 0},   // Пример точки сканирования 6
-        {600025880, 278571475, 100, false, false, 0, 0},   // Пример точки сканирования 7
-        {600025970, 278570755, 100, false, false, 0, 0},   // Пример точки сканирования 8
-        {600025880, 278570215, 100, false, false, 0, 0},   // Пример точки сканирования 9
-        {600026420, 278570575, 100, false, false, 0, 0}   // Пример точки сканирования 10
+        {600025970, 278572915, 100, false, false, 0, 0}, //  Точки сканирования 1
+        {600025880, 278572015, 100, false, false, 0, 0},  //  Точка сканирования 2
+        {600026150, 278572555, 100, false, false, 0, 0},   //  Точка сканирования 3
+        {600026420, 278572915, 100, false, false, 0, 0},   //  Точка сканирования 4
+        {600026420, 278571475, 100, false, false, 0, 0},   //  Точка сканирования 5
+        {600026150, 278571115, 100, false, false, 0, 0},   //  Точка сканирования 6
+        {600025880, 278571475, 100, false, false, 0, 0},   //  Точка сканирования 7
+        {600025970, 278570755, 100, false, false, 0, 0},   //  Точка сканирования 8
+        {600025880, 278570215, 100, false, false, 0, 0},   //  Точка сканирования 9
+        {600026420, 278570575, 100, false, false, 0, 0}   //  Точка сканирования 10
     };
 
     // Конфигурация сканирования RFID
@@ -513,10 +513,7 @@ int main(void) {
             }
         }
 
-        // 4. Сканирование RFID меток
-
-
-            
+        // 4. Сканирование RFID меток  
         if (getCoords(latitude, longitude, currentAlt)) {
             for (auto& poi : pointsOfInterest) {
                 if (!poi.scanned) {
@@ -527,13 +524,16 @@ int main(void) {
                         poi.scan_attempts = 0;
                         logEntry("Approached POI - pausing flight for RFID scan", ENTITY_NAME, LogLevel::LOG_INFO);
 
-                        if (pauseFlight()) {
-                            poi.scanning = true;
-                            poi.last_scan_time = getCurrentTime(); // Засекаем время начала сканировани
-                        } else {
-                            logEntry("Failed to pause flight for RFID scan", ENTITY_NAME, LogLevel::LOG_ERROR);
+                        std::this_thread::sleep_for(std::chrono::seconds(2));
+
+
+                        if (!pauseFlight()) {
+                            logEntry("Pause command failed", ENTITY_NAME, LogLevel::LOG_ERROR);
                             continue;
                         }
+                        
+                        poi.scanning = true;
+                        poi.last_scan_time = getCurrentTime();
                     }
 
                     if (poi.scanning) {
@@ -544,6 +544,8 @@ int main(void) {
 
                             if (!resumeFlight()) {
                                 logEntry("Failed to resume flight after max attempts", ENTITY_NAME, LogLevel::LOG_ERROR);
+                            } else {
+                                logEntry("\n\nResume flight\n\n", ENTITY_NAME, LogLevel::LOG_ERROR);
                             }
                             continue; // Переходим к следующей точке
                         }
