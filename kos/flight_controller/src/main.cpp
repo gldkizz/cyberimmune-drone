@@ -399,20 +399,22 @@ int main(void) {
         double epsilon; // Радиус зоны точки интереса
         bool scanned;  // Флаг, была ли точка уже отсканирована
         bool scanning; // Флаг, что в данный момент идет сканирование
+        uint8_t scan_attempts; // Добавляем счетчик попыток
+        uint32_t last_scan_time; // Время последней попытки
     };
 
     // Точки интереса
     std::vector<PointOfInterest> pointsOfInterest = {
-        {600025970, 278572915, 500, false, false}, // Пример точки сканирования 1
-        {600025880, 278572015, 500, false, false},  // Пример точки сканирования 2
-        {600026150, 278572555, 500, false, false},   // Пример точки сканирования 3
-        {600026420, 278572915, 500, false, false},   // Пример точки сканирования 4
-        {600026420, 278571475, 500, false, false},   // Пример точки сканирования 5
-        {600026150, 278571115, 500, false, false},   // Пример точки сканирования 6
-        {600025880, 278571475, 500, false, false},   // Пример точки сканирования 7
-        {600025970, 278570755, 500, false, false},   // Пример точки сканирования 8
-        {600025880, 278570215, 500, false, false},   // Пример точки сканирования 9
-        {600026420, 278570575, 500, false, false}   // Пример точки сканирования 10
+        {600025970, 278572915, 100, false, false, 0, 0}, // Пример точки сканирования 1
+        {600025880, 278572015, 100, false, false, 0, 0},  // Пример точки сканирования 2
+        {600026150, 278572555, 100, false, false, 0, 0},   // Пример точки сканирования 3
+        {600026420, 278572915, 100, false, false, 0, 0},   // Пример точки сканирования 4
+        {600026420, 278571475, 100, false, false, 0, 0},   // Пример точки сканирования 5
+        {600026150, 278571115, 100, false, false, 0, 0},   // Пример точки сканирования 6
+        {600025880, 278571475, 100, false, false, 0, 0},   // Пример точки сканирования 7
+        {600025970, 278570755, 100, false, false, 0, 0},   // Пример точки сканирования 8
+        {600025880, 278570215, 100, false, false, 0, 0},   // Пример точки сканирования 9
+        {600026420, 278570575, 100, false, false, 0, 0}   // Пример точки сканирования 10
     };
 
     // Конфигурация сканирования RFID
@@ -497,11 +499,11 @@ int main(void) {
                         logEntry("Speed returned to normal limits", ENTITY_NAME, LogLevel::LOG_INFO);
                         speedViolationDetected = false;
                     }
-                    // Логируем текущую скорость (для отладки)
-                    char normalMsg[64];
-                    snprintf(normalMsg, sizeof(normalMsg), 
-                            "Current speed: %.2f m/s (normal)", currentSpeed);
-                    logEntry(normalMsg, ENTITY_NAME, LogLevel::LOG_INFO); // TODO: Поменять на LOG_INFO
+                    // // Логируем текущую скорость (для отладки)
+                    // char normalMsg[64];
+                    // snprintf(normalMsg, sizeof(normalMsg), 
+                    //         "Current speed: %.2f m/s (normal)", currentSpeed);
+                    // logEntry(normalMsg, ENTITY_NAME, LogLevel::LOG_INFO); // TODO: Поменять на LOG_INFO
                 }
             } else {
                 logEntry("Failed to get speed data - activating safety mode", 
@@ -511,52 +513,85 @@ int main(void) {
         }
 
         // 4. Сканирование RFID меток
-        if (currentTime - lastPoiCheckTime >= POI_CHECK_INTERVAL_MS) {
-            lastPoiCheckTime = currentTime;
+
+
             
-            if (getCoords(latitude, longitude, currentAlt)) {
-                for (auto& poi : pointsOfInterest) {
-                    if (!poi.scanned) {
-                        bool inPoiZone = (abs(latitude - poi.latitude) < poi.epsilon) && (abs(longitude - poi.longitude) < poi.epsilon);
-                        
-                        if (inPoiZone && !poi.scanning) {
-                            // Впервые достигли точки интереса - приостанавливаем полет
-                            logEntry("Approached POI - pausing flight for RFID scan", ENTITY_NAME, LogLevel::LOG_INFO);
-                            if (pauseFlight()) {
-                                poi.scanning = true;
-                            } else {
-                                logEntry("Failed to pause flight for RFID scan", ENTITY_NAME, LogLevel::LOG_ERROR);
-                                continue;
+        if (getCoords(latitude, longitude, currentAlt)) {
+            for (auto& poi : pointsOfInterest) {
+                if (!poi.scanned) {
+                    bool inPoiZone = (abs(latitude - poi.latitude) < poi.epsilon) && (abs(longitude - poi.longitude) < poi.epsilon);
+                    
+                    if (!poi.scanning && inPoiZone) {
+                        // Впервые достигли точки интереса - приостанавливаем полет
+                        poi.scan_attempts = 0;
+                        logEntry("Approached POI - pausing flight for RFID scan", ENTITY_NAME, LogLevel::LOG_INFO);
+
+                        if (pauseFlight()) {
+                            poi.scanning = true;
+                            poi.last_scan_time = getCurrentTime(); // Засекаем время начала сканировани
+                        } else {
+                            logEntry("Failed to pause flight for RFID scan", ENTITY_NAME, LogLevel::LOG_ERROR);
+                            continue;
+                        }
+                    }
+
+                    if (poi.scanning) {
+                        if(poi.scan_attempts >= 3) {
+                            logEntry("Max scan attempts (3) reached for this POI", ENTITY_NAME, LogLevel::LOG_WARNING);
+                            poi.scanned = true; // Помечаем как обработанную
+                            poi.scanning = false;
+
+                            if (!resumeFlight()) {
+                                logEntry("Failed to resume flight after max attempts", ENTITY_NAME, LogLevel::LOG_ERROR);
                             }
+                            continue; // Переходим к следующей точке
+                        }
+                        // Продолжаем сканирование в приостановленном состоянии
+
+                        uint32_t current_time = getCurrentTime();
+                        if (current_time - poi.last_scan_time < 1000) {
+                            continue; // Ждем между попытками
                         }
 
-                        if (poi.scanning) {
-                            // Продолжаем сканирование в приостановленном состоянии
-                            logEntry("Starting RFID scan", ENTITY_NAME, LogLevel::LOG_INFO);
-                            
-                            uint8_t scanResult = 0;
-                            if (scanRfid(scanResult)) {
-                                if (scanResult) {
-                                    logEntry("RFID scan successful", ENTITY_NAME, LogLevel::LOG_INFO);
-                                    poi.scanned = true;
+                        logEntry("Starting RFID scan", ENTITY_NAME, LogLevel::LOG_INFO);
+                        
+                        uint8_t scanResult = 0;
+                        if (scanRfid(scanResult)) {
+                            poi.scan_attempts++;
+                            poi.last_scan_time = current_time;
+                            if (scanResult) {
+                                logEntry("RFID scan successful", ENTITY_NAME, LogLevel::LOG_INFO);
+                                poi.scanned = true;
+                                poi.scanning = false;
+
+                                if (!resumeFlight()) {
+                                    logEntry("Failed to resume flight after RFID scan", ENTITY_NAME, LogLevel::LOG_ERROR);
+                                }
+                            } else {
+                                logEntry("RFID scan failed - no tag detected", ENTITY_NAME, LogLevel::LOG_WARNING);
+                                // После неудачного сканирования все равно возобновляем полет
+
+                                if (poi.scan_attempts >= 3) {
+                                    logEntry("All scan attempts exhausted for this POI", ENTITY_NAME, LogLevel::LOG_WARNING);
+                                    poi.scanned = true; // Помечаем как обработанную
                                     poi.scanning = false;
-                                    if (!resumeFlight()) {
-                                        logEntry("Failed to resume flight after RFID scan", ENTITY_NAME, LogLevel::LOG_ERROR);
-                                    }
-                                } else {
-                                    logEntry("RFID scan failed - no tag detected", ENTITY_NAME, LogLevel::LOG_WARNING);
-                                    // После неудачного сканирования все равно возобновляем полет
-                                    poi.scanning = false;
+
                                     if (!resumeFlight()) {
                                         logEntry("Failed to resume flight after RFID scan", ENTITY_NAME, LogLevel::LOG_ERROR);
                                     }
                                 }
-                            } else {
-                                logEntry("RFID scan procedure failed", ENTITY_NAME, LogLevel::LOG_ERROR);
-                                // В случае ошибки сканирования возобновляем полет
+                            }
+                        } else {
+                            logEntry("RFID scan procedure failed", ENTITY_NAME, LogLevel::LOG_ERROR);
+                            poi.scan_attempts++;
+                            poi.last_scan_time = current_time;
+                            // В случае ошибки сканирования возобновляем полет
+                            if (poi.scan_attempts >= 3) {
+                                poi.scanned = true;
                                 poi.scanning = false;
+                                
                                 if (!resumeFlight()) {
-                                    logEntry("Failed to resume flight after RFID scan error", ENTITY_NAME, LogLevel::LOG_ERROR);
+                                    logEntry("Failed to resume flight after scan error", ENTITY_NAME, LogLevel::LOG_ERROR);
                                 }
                             }
                         }
