@@ -239,10 +239,10 @@ int secureMissionUpdate(char *newMission)
 
     // 4. Load new mission
     if (!loadMission(newMission))
-        {
-            logEntry("Failed to load new mission", ENTITY_NAME, LogLevel::LOG_ERROR);
-            return 0;
-        }
+    {
+        logEntry("Failed to load new mission", ENTITY_NAME, LogLevel::LOG_ERROR);
+        return 0;
+    }
 
     // 5. Update stored mission
     strncpy(currentMission, newMission, sizeof(currentMission) - 1);
@@ -491,11 +491,6 @@ int main(void)
     const int32_t ALTITUDE_TOLERANCE = 10;
     bool altitudeViolationDetected = false;
 
-    // Конфигурация проверки смены маршрута
-    char currentMission[4096] = {0};
-    strncpy(currentMission, subscriptionBuffer, 4096);
-    uint32_t lastMissionCheckTime = 0;
-
     while (true)
     {
         // 1. Проверка сброса груза
@@ -609,13 +604,42 @@ int main(void)
         }
 
         // 4. Проверка обновлений миссии
+
+        // Конфигурация проверки смены маршрута
+        char currentMission[4096] = {0};
+        static char lastMissionCheck[4096] = {0};
+        static bool isFirstCheck = true; // Флаг первой проверки
+
+        uint32_t lastMissionCheckTime = 0;
         uint32_t currentMissionTime = getCurrentTime();
 
-        // Регулярная проверка миссии
-        if (currentMissionTime - lastMissionCheckTime >= 3000)
+        uint8_t missionAuthenticity = 0;
+
+        // Регулярная проверка миссии (раз в секунду)
+        if (currentMissionTime - lastMissionCheckTime >= 1000)
         {
-            lastMissionCheckTime = currentMissionTime;
-            checkAndUpdateMission();
+            // Загружаем новую миссию (с проверкой успешности)
+            if (receiveSubscription("api/fmission_kos/", currentMission, 4096))
+            {
+                // Сравниваем только значимые данные (до первого нуль-терминатора)
+                if (isFirstCheck || strcmp(currentMission, lastMissionCheck) != 0)
+                {
+                    // Копируем новую миссию в lastMissionCheck
+                    strncpy(lastMissionCheck, currentMission, sizeof(lastMissionCheck) - 1);
+                    lastMissionCheck[sizeof(lastMissionCheck) - 1] = '\0'; // Гарантируем нуль-терминацию
+
+                    printf("\n\nNew mission detected!\n\n");
+                    printMission();
+
+                    isFirstCheck = false; // Следующие проверки будут обычными
+                }
+            }
+            else
+            {
+                printf("Failed to receive mission update!\n");
+            }
+
+            lastMissionCheckTime = currentMissionTime; // Обновляем время проверки
         }
 
         usleep(100000);
