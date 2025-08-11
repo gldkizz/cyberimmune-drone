@@ -110,12 +110,25 @@ void serverUpdateCheck() {
             if (strcmp(message, "")) {
                 uint8_t authenticity = 0;
                 if (checkSignature(message, authenticity) || !authenticity) {
-                    if (strstr(message, "$Flight -1$")) {
+                    char messageBuf[4096] = {0};
+                    snprintf(messageBuf, sizeof(messageBuf),"\n\nMessage from server: %s",message);
+                    logEntry(messageBuf, ENTITY_NAME, LogLevel::LOG_INFO);
+                    if (strstr(message, "$Flight -1#")) {
                         logEntry("Emergency stop request is received. Disabling motors", ENTITY_NAME, LogLevel::LOG_INFO);
                         if (!enableBuzzer())
                             logEntry("Failed to enable buzzer", ENTITY_NAME, LogLevel::LOG_WARNING);
                         while (!setKillSwitch(false)) {
-                            logEntry("Failed to forbid motor usage. Trying again in 1s", ENTITY_NAME, LogLevel::LOG_WARNING);
+                            logEntry("Retrying motor shutdown...", ENTITY_NAME, LogLevel::LOG_WARNING);
+                            sleep(1);
+                        }
+                    } else if (strstr(message, "$Flight 0#")) {
+                        logEntry("Flight permission restored - manual arm required",ENTITY_NAME, LogLevel::LOG_INFO);
+                    } else {
+                        logEntry("FLIGHT PERMISSION REVOKED: Initiating safety sequence", ENTITY_NAME, LogLevel::LOG_WARNING);
+                        if (!enableBuzzer())
+                            logEntry("Failed to enable buzzer", ENTITY_NAME, LogLevel::LOG_WARNING);
+                        while (!setKillSwitch(false)) {
+                            logEntry("Retrying motor shutdown...", ENTITY_NAME, LogLevel::LOG_WARNING);
                             sleep(1);
                         }
                     }
