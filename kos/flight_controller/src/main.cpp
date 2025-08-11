@@ -189,7 +189,7 @@ int askForMissionApproval(char* mission, int& result) {
 
     snprintf(message, 512, "mission=%s&sig=0x%s", mission, signature);
     if (!publishMessage("api/nmission/request", message)) {
-        logEntry("Failed to publish new mission through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
+        logEntry("Fail to publish new mission through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
         free(message);
         return 0;
     }
