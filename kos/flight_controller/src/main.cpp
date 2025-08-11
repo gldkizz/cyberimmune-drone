@@ -13,6 +13,7 @@
 #include "../../shared/include/ipc_messages_periphery_controller.h"
 #include "../../shared/include/ipc_messages_server_connector.h"
 #include "../../shared/include/ipc_messages_logger.h"
+#include "nav_manager/navManager.h"
 
 #include <math.h>
 #include <stdio.h>
