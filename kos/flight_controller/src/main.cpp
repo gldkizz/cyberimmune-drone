@@ -123,13 +123,15 @@ void serverUpdateCheck() {
                         }
                     } else if (strstr(message, "$Flight 0#")) {
                         logEntry("Flight permission restored - manual arm required",ENTITY_NAME, LogLevel::LOG_INFO);
+                        if(!resumeFlight()) {
+                            logEntry("Failed to resume flight", ENTITY_NAME, LogLevel::LOG_ERROR);
+                        }
                     } else {
                         logEntry("FLIGHT PERMISSION REVOKED: Initiating safety sequence", ENTITY_NAME, LogLevel::LOG_WARNING);
                         if (!enableBuzzer())
                             logEntry("Failed to enable buzzer", ENTITY_NAME, LogLevel::LOG_WARNING);
-                        while (!setKillSwitch(false)) {
-                            logEntry("Retrying motor shutdown...", ENTITY_NAME, LogLevel::LOG_WARNING);
-                            sleep(1);
+                        if (!pauseFlight()) {
+                            logEntry("Failed to pause flight...", ENTITY_NAME, LogLevel::LOG_WARNING);
                         }
                     }
                     //The message has two other possible options:
@@ -316,6 +318,17 @@ int main(void) {
     }
         if (loadMission(subscriptionBuffer)) {
         logEntry("Successfully received mission from the server", ENTITY_NAME, LogLevel::LOG_INFO);
+        int numCommands = 0;
+        MissionCommand* mission = getMissionCommands(numCommands);
+
+        if (mission == nullptr || numCommands == 0) {
+            logEntry("No mission loaded", "MissionControl", LogLevel::LOG_INFO);
+        }
+
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "Current mission (%d commands):", numCommands);
+        logEntry(buffer, "MissionControl", LogLevel::LOG_INFO);
+        
         printMission();
     }
 
