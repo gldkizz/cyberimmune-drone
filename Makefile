@@ -121,7 +121,7 @@ start-mqtt-server: ## запуск mqtt сервера в docker контейн�
 	docker run --name mqtt-server -p 1883:1883 -p 8883:8883 --rm mqtt-server
 
 start-ntp-server: ## Запуск ntp сервера в docker контейнере
-	docker run --name ntp-server -p 123:123/udp --rm ntpd-server
+	docker run --name ntp-server -p 123:123/udp --rm ntp-server
 
 start-orvd: ## Запуск ОрВД в docker контейнере
 	[ -n "$$mqttserver" ] || read -p "Please enter MQTT server IP: " mqttserver; \
