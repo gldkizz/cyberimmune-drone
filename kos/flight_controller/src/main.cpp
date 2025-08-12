@@ -33,6 +33,23 @@ uint32_t lastSuccessfulContact = 0;
 const uint32_t CONNECTION_TIMEOUT_SEC = 3; // Таймаут разрыва связи
 bool connectionLost = false;
 
+std::vector<PointOfInterest> pointsOfInterest = {
+        {600025970, 278572915, 100, false, false, 0, 0}, // Пример точки сканирования 1
+        {600025880, 278572015, 100, false, false, 0, 0},  // Пример точки сканирования 2
+        {600026150, 278572555, 100, false, false, 0, 0},   // Пример точки сканирования 3
+        {600026420, 278572915, 100, false, false, 0, 0},   // Пример точки сканирования 4
+        {600026420, 278571475, 100, false, false, 0, 0},   // Пример точки сканирования 5
+        {600026150, 278571115, 100, false, false, 0, 0},   // Пример точки сканирования 6
+        {600025880, 278571475, 100, false, false, 0, 0},   // Пример точки сканирования 7
+        {600025970, 278570755, 100, false, false, 0, 0},   // Пример точки сканирования 8
+        {600025880, 278570215, 100, false, false, 0, 0},   // Пример точки сканирования 9
+        {600026420, 278570575, 100, false, false, 0, 0}   // Пример точки сканирования 10
+    };
+
+Point homePoint;
+Point deliveryPoint;
+
+NavManager navManager;
 char boardId[32] = {0};
 uint32_t sessionDelay;
 std::thread sessionThread, updateThread;
@@ -41,6 +58,183 @@ std::thread sessionThread, updateThread;
 uint32_t getCurrentTime() {
     using namespace std::chrono;
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+}
+
+void loadPointsOfInterest() {
+    int num = 0;
+    MissionCommand* commands = getMissionCommands(num);
+    pointsOfInterest.clear();
+    for(int i = 0;i < num;++i) {
+        if(commands[i].type == CommandType::INTEREST) {
+            PointOfInterest poi;
+            poi.latitude = commands[i].content.waypoint.latitude;
+            poi.longitude = commands[i].content.waypoint.longitude;
+            poi.epsilon = 0.0; // Радиус зоны точки интереса, можно задать по умолчанию
+            poi.scanned = false;
+            poi.scanning = false;
+            poi.scan_attempts = 0;
+            poi.last_scan_time = 0;
+            pointsOfInterest.push_back(poi);
+        }
+    }
+}
+
+std::vector<Point> parsePointsOfInterests() {
+    std::vector<Point> points;
+    for (const auto& poi : pointsOfInterest) {
+        if(poi.scanned) continue; // Пропускаем уже отсканированные точки
+        Point p;
+        p.x = static_cast<double>(poi.longitude) / 1e7; // Преобразование в градусы
+        p.y = static_cast<double>(poi.latitude) / 1e7;  // Преобразование в градусы
+        points.push_back(p);
+    }
+    return points;
+}
+
+std::vector<Point> calculatePath() {
+    std::vector<Point> route;
+    int32_t x, y, z;
+    if(getCoords(y,x,z)) {
+        Point curPosition;
+        curPosition.x = (double)x / pow(10, 7);
+        curPosition.y = (double)y / pow(10, 7);
+        std::vector<Point> wayPoints = parsePointsOfInterests();
+        wayPoints.insert(wayPoints.end(), deliveryPoint);
+        //wayPoints.insert(wayPoints.end(), homePoint);
+        for(int i = 0;i < wayPoints.size();++i) {
+            Point startPos = (i == 0) ? curPosition : wayPoints[i - 1];
+            std::vector<Point> routeSegment;
+            if(navManager.buildRoute(startPos, wayPoints[i], routeSegment)) {
+                route.insert(route.end(), routeSegment.begin(), routeSegment.end());
+            }
+            else
+                logEntry("Failed to build route segment", ENTITY_NAME, LogLevel::LOG_ERROR);
+        }
+    }
+    else
+    // Добавить обработку, если getCoords не сработал
+        ;
+    return route;
+}
+
+bool loadHomePoint() {
+    int num = 0;
+    MissionCommand* commands = getMissionCommands(num);
+    for(int i = 0; i < num; ++i) {
+        if(commands[i].type == CommandType::HOME) {
+            homePoint.x = static_cast<double>(commands[i].content.waypoint.longitude) / 1e7;
+            homePoint.y = static_cast<double>(commands[i].content.waypoint.latitude) / 1e7;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool loadDeliveryPoint() {
+    int num = 0;
+    MissionCommand* commands = getMissionCommands(num);
+    for(int i = 0; i < num; ++i) {
+        if(commands[i].type == CommandType::SET_SERVO) {
+            // Предполагаем, что команда SET_SERVO содержит координаты точки доставки
+            for(int j = i; j >= 0; --j) {
+                if(commands[j].type == CommandType::WAYPOINT) {
+                    int32_t lat = commands[j].content.waypoint.latitude;
+                    int32_t lng = commands[j].content.waypoint.longitude;
+                    deliveryPoint = Point(static_cast<double>(lng) / 1e7, static_cast<double>(lat) / 1e7);
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+    return false;
+}
+
+void removeAllWaypoints(std::vector<MissionCommand>& commands) {
+    commands.erase(std::remove_if(commands.begin(), commands.end(),
+                                   [](const MissionCommand& cmd) {
+                                       return cmd.type == CommandType::WAYPOINT;
+                                   }), commands.end());
+}
+
+int findPlaceToInsertRoute(const std::vector<MissionCommand>& commands) {
+    int pos = -1;
+    for(int i = 0;i < commands.size(); ++i) {
+        if(commands[i].type == CommandType::SET_SERVO) {
+            for(int j = 0; j >= 0; --j) {
+                if((commands[j].type != CommandType::SET_SERVO && commands[j].type != CommandType::DELAY) || j == 0) {
+                    pos = j;
+                    return pos;
+                }
+            }
+        }
+    }
+    return pos;
+}
+
+std::vector<MissionCommand> createRouteCommands(const std::vector<Point>& route) {
+    MissionCommand* commands = (MissionCommand*)malloc(route.size() * sizeof(MissionCommand));
+    for(size_t i = 0; i < route.size(); ++i) {
+        commands[i].type = CommandType::WAYPOINT;
+        commands[i].content.waypoint = CommandWaypoint(
+            static_cast<int32_t>(route[i].y * 1e7),
+            static_cast<int32_t>(route[i].x * 1e7),
+            100
+        );
+    }
+    // Возвращаем std::vector, который использует выделенный массив (копирует данные)
+    return std::vector<MissionCommand>(commands, commands + route.size());
+}
+
+bool sendMissionCommands(MissionCommand* commands, int num) {
+    return setMission((uint8_t*)commands, getMissionBytesSize(commands, num));
+}
+
+void uploadPath(const std::vector<Point>& points) {
+    int num = 0;
+    MissionCommand* commands = getMissionCommands(num);
+    std::vector<MissionCommand> newCommands(commands, commands + num);
+    removeAllWaypoints(newCommands);
+    int insertPos = findPlaceToInsertRoute(newCommands);
+    if(insertPos != -1) {
+        std::vector<MissionCommand> routeCommands = createRouteCommands(points);
+        newCommands.insert(newCommands.begin() + insertPos, routeCommands.begin(), routeCommands.end());
+        // Отправляем обновленные команды на сервер
+        if(sendMissionCommands(newCommands.data(), newCommands.size()))
+            logEntry("Route successfully uploaded", ENTITY_NAME, LogLevel::LOG_INFO);
+        else
+            logEntry("Failed to upload route", ENTITY_NAME, LogLevel::LOG_ERROR);
+    }
+    else {
+        logEntry("Failed to find place to insert route", ENTITY_NAME, LogLevel::LOG_ERROR);
+    }
+}
+
+void updatePath() {
+    int noFlightAreasNum = 0;
+    NoFlightArea* noFlightAreas = getNoFlightAreas(noFlightAreasNum);
+    std::vector<Polygon> pols;
+    for(int i = 0;i < noFlightAreasNum;++i) {
+        NoFlightArea nfa = noFlightAreas[i];
+        Polygon pol;
+        for(int j = 0;j < nfa.pointNum;++j) {
+            Point2D point2D = nfa.points[j];
+            Point fpoint;
+            fpoint.x = ((double)point2D.longitude / pow(10, 7));
+            fpoint.y = ((double)point2D.latitude / pow(10, 7));
+            pol.push_back(fpoint);
+        }
+        pols.push_back(pol);
+    }
+    navManager.load_polygons(pols);
+    if(navManager.build_graph()) {
+        std::vector<Point> path = calculatePath();
+        uploadPath(path);
+    }
+    // Добавить обработку, если build_graph не сработал
+    else {
+        logEntry("Failed to build navigation graph", ENTITY_NAME, LogLevel::LOG_ERROR);
+    }
 }
 
 /**
@@ -120,10 +314,6 @@ void serverUpdateCheck() {
                             sleep(1);
                         }
                     }
-                    //The message has two other possible options:
-                    //  "$Flight 1$" that requires to pause flight and remain landed
-                    //  "$Flight 0$" that requires to resume flight and keep flying
-                    //Implementation is required to be done
                 }
                 else
                     logEntry("Failed to check signature of flight status received through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
@@ -140,7 +330,7 @@ void serverUpdateCheck() {
                     loadNoFlightAreas(message);
                     logEntry("New no-flight areas are received from the server", ENTITY_NAME, LogLevel::LOG_INFO);
                     printNoFlightAreas();
-                    //Path recalculation must be done if current path crosses new no-flight areas
+                    updatePath();
                 }
                 else
                     logEntry("Failed to check signature of no-flight areas received through Server Connector", ENTITY_NAME, LogLevel::LOG_WARNING);
@@ -205,6 +395,8 @@ int askForMissionApproval(char* mission, int& result) {
     free(message);
     return 1;
 }
+
+
 
 /**
  * \~English Security module main loop. Waits for all other components to initialize. Authenticates
@@ -393,7 +585,11 @@ int main(void) {
     const int32_t ALTITUDE_TOLERANCE = 10;
     bool altitudeViolationDetected = false;
 
-    
+    loadPointsOfInterest();
+    loadHomePoint();
+    loadDeliveryPoint();
+    updatePath();
+
     while (true) {
         // 1. Проверка сброса груза
         int32_t latitude, longitude, currentAlt;
@@ -484,6 +680,9 @@ int main(void) {
                 pauseFlight();
             }
         }
+
+        // 4. Проверка навигации и обновления маршрута
+
 
         usleep(100000);
     }

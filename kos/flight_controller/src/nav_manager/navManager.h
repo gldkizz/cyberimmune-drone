@@ -10,10 +10,19 @@
 #include "navConfig.h"
 
 
-
 class NavManager {
 public:
     NavManager() {}
+
+
+
+    int calc_crc32(const char* data, size_t len) const {
+        unsigned int crc = 0xFFFFFFFFU;
+        for (size_t i = 0; i < len; ++i) {
+            crc = CRC_TABLE[(crc ^ static_cast<unsigned char>(data[i])) & 0xFFU] ^ (crc >> 8);
+        }
+        return static_cast<int>(crc ^ 0xFFFFFFFFU);
+    }
 
     bool buildRoute(const Point& a, const Point& b, std::vector<Point>& route) {
         route.clear();
@@ -26,12 +35,12 @@ public:
             if (route.size() < 1)
                 return false;
         }
-        route.insert(route.begin(), a);
         route.insert(route.end(), b);
         return true;
     }
 
     bool load_polygons(const nlohmann::json& data) {
+        this->polys.clear();
         if (!data.contains("features") || !data["features"].is_array()) return false;
         for (auto& ft : data["features"]) {
             if (!ft.contains("geometry")) continue;
@@ -56,6 +65,11 @@ public:
             }
             if (poly.size() >= 3) polys.push_back(poly);
         }
+        return true;
+    }
+
+    bool load_polygons(std::vector<Polygon> pols) {
+        this->polys = pols;
         return true;
     }
 
