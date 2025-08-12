@@ -75,6 +75,10 @@ public:
 
     bool build_graph(bool fallback = false)
     {
+        if(polys.size() == 0) {
+            logEntry("[buildGraph] no polygons, skipping graph construction", ENTITY_NAME, LogLevel::LOG_INFO);
+            return true;
+        }
         std::string use_mode = BOUNDARY_MODE;
 
         //BuildResult res;

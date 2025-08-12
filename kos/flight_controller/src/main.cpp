@@ -46,8 +46,9 @@ std::vector<PointOfInterest> pointsOfInterest = {
         {600026420, 278570575, 100, false, false, 0, 0}   // Пример точки сканирования 10
     };
 
-Point homePoint;
-Point deliveryPoint;
+bool isPathInit = false;
+Point homePoint = {0.0,0.0};
+Point deliveryPoint = {0.0, 0.0};
 
 NavManager navManager;
 char boardId[32] = {0};
@@ -99,16 +100,25 @@ std::vector<Point> calculatePath() {
         curPosition.x = (double)x / pow(10, 7);
         curPosition.y = (double)y / pow(10, 7);
         std::vector<Point> wayPoints = parsePointsOfInterests();
+        char buf[128];
+        for(const Point& poi : wayPoints) {
+            snprintf(buf, sizeof(buf), "[calculatePath] Point of interest: %.7f, %.7f", poi.x, poi.y);
+            logEntry(buf, ENTITY_NAME, LogLevel::LOG_INFO);
+        }
         wayPoints.insert(wayPoints.end(), deliveryPoint);
+        snprintf(buf, sizeof(buf), "[calculatePath] Delivery point: %.7f, %.7f", deliveryPoint.x, deliveryPoint.y);
+        logEntry(buf, ENTITY_NAME, LogLevel::LOG_INFO);
+        snprintf(buf, sizeof(buf), "[calculatePath] home point: %.7f, %.7f", homePoint.x, homePoint.y);
+        logEntry(buf, ENTITY_NAME, LogLevel::LOG_INFO);
         //wayPoints.insert(wayPoints.end(), homePoint);
-        for(int i = 0;i < wayPoints.size();++i) {
+        for(int i = 0;i < static_cast<int>(wayPoints.size());++i) {
             Point startPos = (i == 0) ? curPosition : wayPoints[i - 1];
             std::vector<Point> routeSegment;
             if(navManager.buildRoute(startPos, wayPoints[i], routeSegment)) {
                 route.insert(route.end(), routeSegment.begin(), routeSegment.end());
             }
             else
-                logEntry("Failed to build route segment", ENTITY_NAME, LogLevel::LOG_ERROR);
+                logEntry((char*)"Failed to build route segment", (char*)ENTITY_NAME, LogLevel::LOG_ERROR);
         }
     }
     else
@@ -159,9 +169,12 @@ void removeAllWaypoints(std::vector<MissionCommand>& commands) {
 
 int findPlaceToInsertRoute(const std::vector<MissionCommand>& commands) {
     int pos = -1;
-    for(int i = 0;i < commands.size(); ++i) {
+    for(int i = 0;i < static_cast<int>(commands.size()); ++i) {
         if(commands[i].type == CommandType::SET_SERVO) {
-            for(int j = 0; j >= 0; --j) {
+            char buf[128];
+            snprintf(buf, sizeof(buf), "[findPlaceToInsertRoute] Found SET_SERVO command at index %d", i);
+            logEntry(buf, (char*)ENTITY_NAME, LogLevel::LOG_INFO);
+            for(int j = i; j >= 0; --j) {
                 if((commands[j].type != CommandType::SET_SERVO && commands[j].type != CommandType::DELAY) || j == 0) {
                     pos = j;
                     return pos;
@@ -187,7 +200,23 @@ std::vector<MissionCommand> createRouteCommands(const std::vector<Point>& route)
 }
 
 bool sendMissionCommands(MissionCommand* commands, int num) {
-    return setMission((uint8_t*)commands, getMissionBytesSize(commands, num));
+    bool result = false;
+    logEntry("sending mission commands", ENTITY_NAME, LogLevel::LOG_INFO);
+    for(int i = 0;i < num;++i) {
+        char buf[128];
+        snprintf(buf, sizeof(buf), "[sendMissionCommands] Command[%d]: type=%d, lat=%.7f, lon=%.7f, alt=%d",
+                 i, commands[i].type,
+                 static_cast<double>(commands[i].content.waypoint.latitude) / 1e7,
+                 static_cast<double>(commands[i].content.waypoint.longitude) / 1e7,
+                 commands[i].content.waypoint.altitude);
+        logEntry(buf, ENTITY_NAME, LogLevel::LOG_INFO);
+    }
+    if(!pauseFlight())
+        logEntry("Failed to pause flight before sending mission commands", ENTITY_NAME, LogLevel::LOG_ERROR);
+    result = setMission((uint8_t*)commands, getMissionBytesSize(commands, num));
+    if(!resumeFlight())
+        logEntry("Failed to resume flight after sending mission commands", ENTITY_NAME, LogLevel::LOG_ERROR);
+    return result;
 }
 
 void uploadPath(const std::vector<Point>& points) {
@@ -196,42 +225,92 @@ void uploadPath(const std::vector<Point>& points) {
     std::vector<MissionCommand> newCommands(commands, commands + num);
     removeAllWaypoints(newCommands);
     int insertPos = findPlaceToInsertRoute(newCommands);
+    {
+        char buf[128];
+        snprintf(buf, sizeof(buf), "[uploadPath] insertPos = %d", insertPos);
+        logEntry(buf, (char*)ENTITY_NAME, LogLevel::LOG_INFO);
+    }
     if(insertPos != -1) {
         std::vector<MissionCommand> routeCommands = createRouteCommands(points);
-        newCommands.insert(newCommands.begin() + insertPos, routeCommands.begin(), routeCommands.end());
+        newCommands.insert(newCommands.begin() + insertPos + 1, routeCommands.begin(), routeCommands.end());
         // Отправляем обновленные команды на сервер
-        if(sendMissionCommands(newCommands.data(), newCommands.size()))
-            logEntry("Route successfully uploaded", ENTITY_NAME, LogLevel::LOG_INFO);
-        else
-            logEntry("Failed to upload route", ENTITY_NAME, LogLevel::LOG_ERROR);
+        if(sendMissionCommands(newCommands.data(), static_cast<int>(newCommands.size()))) {
+            logEntry((char*)"Route successfully uploaded", (char*)ENTITY_NAME, LogLevel::LOG_INFO);
+            int numCommands = 0;
+            MissionCommand* updatedCommands = getMissionCommands(numCommands);
+            char buf[128];
+            snprintf(buf, sizeof(buf), "[uploadPath] Updated mission commands count: %d", numCommands);
+            logEntry(buf, ENTITY_NAME, LogLevel::LOG_INFO);
+            printMission();
+        }
+        else {
+            logEntry((char*)"Failed to upload route", (char*)ENTITY_NAME, LogLevel::LOG_ERROR);
+        }
     }
     else {
-        logEntry("Failed to find place to insert route", ENTITY_NAME, LogLevel::LOG_ERROR);
+        logEntry((char*)"Failed to find place to insert route", (char*)ENTITY_NAME, LogLevel::LOG_ERROR);
     }
 }
 
 void updatePath() {
+    if(!isPathInit) {
+        if(!loadHomePoint()) {
+            logEntry("Failed to load home point", ENTITY_NAME, LogLevel::LOG_ERROR);
+            return;
+        }
+        if(!loadDeliveryPoint()) {
+            logEntry("Failed to load delivery point", ENTITY_NAME, LogLevel::LOG_ERROR);
+            return;
+        }
+        isPathInit = true;
+        logEntry("Path initialization complete", ENTITY_NAME, LogLevel::LOG_INFO);
+    }
     int noFlightAreasNum = 0;
     NoFlightArea* noFlightAreas = getNoFlightAreas(noFlightAreasNum);
+    char logBuf[256];
+    snprintf(logBuf, sizeof(logBuf), "[updatePath] noFlightAreasNum = %d", noFlightAreasNum);
+    logEntry(logBuf, ENTITY_NAME, LogLevel::LOG_INFO);
+
     std::vector<Polygon> pols;
-    for(int i = 0;i < noFlightAreasNum;++i) {
+    for(int i = 0; i < noFlightAreasNum; ++i) {
         NoFlightArea nfa = noFlightAreas[i];
+        snprintf(logBuf, sizeof(logBuf), "[updatePath] NoFlightArea[%d]: pointNum = %d", i, nfa.pointNum);
+        logEntry(logBuf, ENTITY_NAME, LogLevel::LOG_INFO);
         Polygon pol;
-        for(int j = 0;j < nfa.pointNum;++j) {
+        for(int j = 0; j < nfa.pointNum; ++j) {
             Point2D point2D = nfa.points[j];
             Point fpoint;
             fpoint.x = ((double)point2D.longitude / pow(10, 7));
             fpoint.y = ((double)point2D.latitude / pow(10, 7));
+            snprintf(logBuf, sizeof(logBuf), "[updatePath]   Point[%d]: lat=%.7f, lon=%.7f", j, fpoint.y, fpoint.x);
+            logEntry(logBuf, ENTITY_NAME, LogLevel::LOG_INFO);
             pol.push_back(fpoint);
         }
         pols.push_back(pol);
     }
+    snprintf(logBuf, sizeof(logBuf), "[updatePath] Total polygons: %zu", pols.size());
+    logEntry(logBuf, ENTITY_NAME, LogLevel::LOG_INFO);
+
     navManager.load_polygons(pols);
-    if(navManager.build_graph()) {
+    logEntry("[updatePath] navManager.load_polygons() called", ENTITY_NAME, LogLevel::LOG_INFO);
+
+    bool graphOk = false;
+    try {
+        graphOk = navManager.build_graph();
+        logEntry("[updatePath] navManager.build_graph() returned", ENTITY_NAME, LogLevel::LOG_INFO);
+    } catch (const std::exception& ex) {
+        snprintf(logBuf, sizeof(logBuf), "[updatePath] Exception in build_graph: %s", ex.what());
+        logEntry(logBuf, ENTITY_NAME, LogLevel::LOG_ERROR);
+        return;
+    } catch (...) {
+        logEntry("[updatePath] Unknown exception in build_graph", ENTITY_NAME, LogLevel::LOG_ERROR);
+        return;
+    }
+    if(graphOk) {
         std::vector<Point> path = calculatePath();
+        logEntry("[updatePath] Path calculated, uploading...", ENTITY_NAME, LogLevel::LOG_INFO);
         uploadPath(path);
     }
-    // Добавить обработку, если build_graph не сработал
     else {
         logEntry("Failed to build navigation graph", ENTITY_NAME, LogLevel::LOG_ERROR);
     }
@@ -585,10 +664,10 @@ int main(void) {
     const int32_t ALTITUDE_TOLERANCE = 10;
     bool altitudeViolationDetected = false;
 
-    loadPointsOfInterest();
-    loadHomePoint();
-    loadDeliveryPoint();
-    updatePath();
+    // loadPointsOfInterest();
+    // loadHomePoint();
+    // loadDeliveryPoint();
+    // updatePath();
 
     while (true) {
         // 1. Проверка сброса груза
@@ -619,7 +698,7 @@ int main(void) {
                 if(!altitudeViolationDetected) {
                     char altMsg[128];
                     snprintf(altMsg, sizeof(altMsg),
-                            "ALTITUDE VIOLATION: Current %.2f (Allowed %.2f ± %.2f)",
+                            "ALTITUDE VIOLATION: Current %d (Allowed %d ± %d)",
                             currentAlt, MAX_ALTITUDE, ALTITUDE_TOLERANCE);
                     logEntry(altMsg, ENTITY_NAME, LogLevel::LOG_WARNING);
                     altitudeViolationDetected = true;
