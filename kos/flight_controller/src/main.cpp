@@ -437,7 +437,7 @@ int main(void) {
             } else if (!inZone && !cargoLocked) {
                 setCargoLock(0);
                 cargoLocked = true;
-                logEntry("Cargo locked - left drop zone", ENTITY_NAME, LogLevel::LOG_INFO);
+                logEntry("Cargo locked - left drop zone.", ENTITY_NAME, LogLevel::LOG_INFO);
             }
 
             // логирование высоты
