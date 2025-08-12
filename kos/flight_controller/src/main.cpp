@@ -414,8 +414,8 @@ int main(void) {
     static bool speedViolationDetected = false;
 
     // Конфигурация защиты высоты
-    const int32_t MAX_ALTITUDE = 200;
-    const int32_t ALTITUDE_TOLERANCE = 10;
+    const int32_t MAX_ALTITUDE = 100;
+    const int32_t ALTITUDE_TOLERANCE = 50;
     bool altitudeViolationDetected = false;
 
     
