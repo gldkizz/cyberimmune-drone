@@ -431,11 +431,15 @@ int main(void) {
             //         latitude/1e7, longitude/1e7, currentAlt, inZone, cargoLocked);
             // logEntry(coordMsg, ENTITY_NAME, LogLevel::LOG_INFO);
             if(inZone && cargoLocked) {
-                setCargoLock(1);
+                if(!setCargoLock(1)) {
+                    logEntry("Failed to lock drop cargo", ENTITY_NAME, LogLevel::LOG_WARNING);
+                }
                 cargoLocked = false;
                 logEntry("Cargo unlocked - in drop zone", ENTITY_NAME, LogLevel::LOG_INFO);
             } else if (!inZone && !cargoLocked) {
-                setCargoLock(0);
+                if(setCargoLock(0)) {
+                    logEntry("Failed to unlock drop cargo", ENTITY_NAME, LogLevel::LOG_WARNING);
+                }
                 cargoLocked = true;
                 logEntry("Cargo locked - left drop zone", ENTITY_NAME, LogLevel::LOG_INFO);
             }
@@ -452,7 +456,9 @@ int main(void) {
                             currentAlt, MAX_ALTITUDE, ALTITUDE_TOLERANCE);
                     logEntry(altMsg, ENTITY_NAME, LogLevel::LOG_WARNING);
                     altitudeViolationDetected = true;
-                    changeAltitude(static_cast<int32_t>(MAX_ALTITUDE));
+                    if(!changeAltitude(static_cast<int32_t>(MAX_ALTITUDE))) {
+                        logEntry("Failed to change altitude", ENTITY_NAME, LogLevel::LOG_WARNING);
+                    }
                 }
             } else if(altitudeViolationDetected) {
                 logEntry("Altitude returned to normal limits", ENTITY_NAME, LogLevel::LOG_INFO);
@@ -460,7 +466,9 @@ int main(void) {
             }
         } else {
             logEntry("Failed to get coordinates - locking cargo", ENTITY_NAME, LogLevel::LOG_WARNING);
-            setCargoLock(0);
+            if(setCargoLock(0)) {
+                logEntry("Failed to unlock drop cargo", ENTITY_NAME, LogLevel::LOG_WARNING);
+            }
             cargoLocked = true;
         }
 
@@ -486,7 +494,9 @@ int main(void) {
                         speedViolationDetected = true;
                         
                         // Корректируем скорость
-                        changeSpeed(static_cast<int32_t>(ALLOWED_SPEED * 100));
+                        if(!changeSpeed(static_cast<int32_t>(ALLOWED_SPEED * 100))) {
+                            logEntry("Failed to change speed", ENTITY_NAME, LogLevel::LOG_WARNING);
+                        }
                         
                         // Добавляем задержку для стабилизации
                         std::this_thread::sleep_for(
@@ -504,9 +514,10 @@ int main(void) {
                     // logEntry(normalMsg, ENTITY_NAME, LogLevel::LOG_INFO); // TODO: Поменять на LOG_INFO
                 }
             } else {
-                logEntry("Failed to get speed data - activating safety mode", 
-                        ENTITY_NAME, LogLevel::LOG_ERROR);
-                pauseFlight();
+                logEntry("Failed to get speed data - activating safety mode", ENTITY_NAME, LogLevel::LOG_ERROR);
+                if(!pauseFlight()) {
+                    logEntry("Failed to pause flight", ENTITY_NAME, LogLevel::LOG_WARNING);
+                }
             }
         }
 
