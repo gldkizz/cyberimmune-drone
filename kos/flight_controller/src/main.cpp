@@ -15,6 +15,7 @@
 #include "../../shared/include/ipc_messages_logger.h"
 
 #include <math.h>
+#include <cmath>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -201,86 +202,60 @@ int askForMissionApproval(char *mission, int &result)
     return 1;
 }
 
-int secureMissionUpdate(char *newMission)
+// Простая функция расчета расстояния между точками (в метрах)
+float calculateDistance(int32_t lat1, int32_t lon1, int32_t lat2, int32_t lon2)
 {
-    static char currentMission[4096] = {0};
-    // 1. Validate signature
-    uint8_t authenticity = 0;
-    if (!checkSignature(newMission, authenticity) || !authenticity)
-    {
-        logEntry("Invalid mission signature", ENTITY_NAME, LogLevel::LOG_WARNING);
-        return 0;
-    }
+    // Конвертируем координаты в радианы
+    double lat1_rad = (lat1 / 1e7) * M_PI / 180.0;
+    double lon1_rad = (lon1 / 1e7) * M_PI / 180.0;
+    double lat2_rad = (lat2 / 1e7) * M_PI / 180.0;
+    double lon2_rad = (lon2 / 1e7) * M_PI / 180.0;
 
-    // 2. Compare with current mission
-    if (strcmp(newMission, currentMission) == 0)
-    {
-        return 1; // Mission unchanged
-    }
+    // Разницы координат
+    double dLat = lat2_rad - lat1_rad;
+    double dLon = lon2_rad - lon1_rad;
 
-    // 3. Verify through admin API
-    char verifyUrl[512];
-    snprintf(verifyUrl, sizeof(verifyUrl),
-             "/admin/mission_decision?id=%s&decision=0&token=ADMIN_TOKEN",
-             boardId);
+    // Формула гаверсинусов
+    double a = sin(dLat / 2) * sin(dLat / 2) +
+               cos(lat1_rad) * cos(lat2_rad) *
+                   sin(dLon / 2) * sin(dLon / 2);
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
-    char verifyResponse[1024];
-    if (!sendRequest(verifyUrl, verifyResponse, sizeof(verifyResponse)))
-    {
-        logEntry("Failed to verify mission with server", ENTITY_NAME, LogLevel::LOG_WARNING);
-        return 0;
-    }
-
-    if (strstr(verifyResponse, "decision=1") == NULL)
-    {
-        logEntry("Mission rejected by admin", ENTITY_NAME, LogLevel::LOG_WARNING);
-        return 0;
-    }
-
-    // 4. Load new mission
-    if (!loadMission(newMission))
-    {
-        logEntry("Failed to load new mission", ENTITY_NAME, LogLevel::LOG_ERROR);
-        return 0;
-    }
-
-    // 5. Update stored mission
-    strncpy(currentMission, newMission, sizeof(currentMission) - 1);
-    currentMission[sizeof(currentMission) - 1] = '\0';
-    logEntry("Mission successfully updated", ENTITY_NAME, LogLevel::LOG_INFO);
-    printMission();
-    return 1;
+    // Радиус Земли в метрах
+    const double R = 6371000.0;
+    return R * c;
 }
 
-/**
- * Полный цикл обновления миссии
- */
-void checkAndUpdateMission()
+// Функция расчета отклонения от линии маршрута (в метрах)
+float calculateDeviation(int32_t lineLat1, int32_t lineLon1,
+                         int32_t lineLat2, int32_t lineLon2,
+                         int32_t pointLat, int32_t pointLon)
 {
-    char missionRequest[256];
-    // snprintf(missionRequest, sizeof(missionRequest), "/api/fmission_kos?id=%s", boardId);
+    // Конвертируем координаты в радианы
+    double lat1 = (lineLat1 / 1e7) * M_PI / 180.0;
+    double lon1 = (lineLon1 / 1e7) * M_PI / 180.0;
+    double lat2 = (lineLat2 / 1e7) * M_PI / 180.0;
+    double lon2 = (lineLon2 / 1e7) * M_PI / 180.0;
+    double latP = (pointLat / 1e7) * M_PI / 180.0;
+    double lonP = (pointLon / 1e7) * M_PI / 180.0;
 
-    char signature[257] = {0};
-    if (!signMessage(missionRequest, signature, sizeof(signature)))
-    {
-        logEntry("Failed to sign mission request", ENTITY_NAME, LogLevel::LOG_WARNING);
-        return;
-    }
+    // Если точки совпадают, возвращаем расстояние до точки
+    if (lat1 == lat2 && lon1 == lon2)
+        return calculateDistance(lineLat1, lineLon1, pointLat, pointLon);
 
-    // snprintf(missionRequest, sizeof(missionRequest),
-    //          "/api/fmission_kos?id=%s&sig=0x%s", boardId, signature);
+    // Вычисляем отклонение по формуле расстояния от точки до линии на сфере
+    double y = sin(lonP - lon1) * cos(latP);
+    double x = cos(lat1) * sin(latP) - sin(lat1) * cos(latP) * cos(lonP - lon1);
+    double bearing1 = atan2(y, x);
 
-    char missionResponse[4096] = {0};
-    if (!sendRequest(missionRequest, missionResponse, sizeof(missionResponse)))
-    {
-        logEntry("Failed to receive mission", ENTITY_NAME, LogLevel::LOG_WARNING);
-        return;
-    }
+    y = sin(lon2 - lon1) * cos(lat2);
+    x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon2 - lon1);
+    double bearing2 = atan2(y, x);
 
-    if (strlen(missionResponse) > 0)
-    {
-        secureMissionUpdate(missionResponse);
-    }
+    double theta = bearing1 - bearing2;
+    double distance = calculateDistance(lineLat1, lineLon1, pointLat, pointLon) / 6371000.0;
+
+    return fabs(asin(sin(distance) * sin(theta))) * 6371000.0;
 }
 
 /**
@@ -603,43 +578,86 @@ int main(void)
             }
         }
 
-        // 4. Проверка обновлений миссии
-
-        // Конфигурация проверки смены маршрута
-        char currentMission[4096] = {0};
-        static char lastMissionCheck[4096] = {0};
-        static bool isFirstCheck = true; // Флаг первой проверки
-
-        uint32_t lastMissionCheckTime = 0;
-        uint32_t currentMissionTime = getCurrentTime();
-
-        uint8_t missionAuthenticity = 0;
-
-        // Регулярная проверка миссии (раз в секунду)
-        if (currentMissionTime - lastMissionCheckTime >= 1000)
+        // 4. Проверка траектории полета
         {
-            // Загружаем новую миссию (с проверкой успешности)
-            if (receiveSubscription("api/fmission_kos/", currentMission, 4096))
+            static int32_t prevLat = 0, prevLon = 0, prevAlt = 0;
+            static int currentWaypointIndex = 0;
+            static uint32_t lastTrajectoryCheckTime = 0;
+            const float ALLOWED_DEVIATION_M = 5.0f; // Допустимое отклонение в метрах
+            const float WAYPOINT_RADIUS_M = 3.0f;   // Радиус достижения точки в метрах
+
+            uint32_t currentTime = getCurrentTime();
+
+            // Проверяем траекторию раз в секунду
+            if (currentTime - lastTrajectoryCheckTime >= 500)
             {
-                // Сравниваем только значимые данные (до первого нуль-терминатора)
-                if (isFirstCheck || strcmp(currentMission, lastMissionCheck) != 0)
+                lastTrajectoryCheckTime = currentTime;
+
+                // Получаем текущие координаты
+                int32_t currentLat, currentLon, currentAlt;
+                if (getCoords(currentLat, currentLon, currentAlt))
                 {
-                    // Копируем новую миссию в lastMissionCheck
-                    strncpy(lastMissionCheck, currentMission, sizeof(lastMissionCheck) - 1);
-                    lastMissionCheck[sizeof(lastMissionCheck) - 1] = '\0'; // Гарантируем нуль-терминацию
+                    // Получаем текущую миссию
+                    int missionSize = 0;
+                    MissionCommand *mission = getMissionCommands(missionSize);
 
-                    printf("\n\nNew mission detected!\n\n");
-                    printMission();
+                    if (missionSize > 0 && currentWaypointIndex < missionSize)
+                    {
+                        MissionCommand cmd = mission[currentWaypointIndex];
 
-                    isFirstCheck = false; // Следующие проверки будут обычными
+                        // Проверяем только точки маршрута (WAYPOINT)
+                        if (cmd.type == WAYPOINT)
+                        {
+                            // Рассчитываем расстояние до текущей точки маршрута
+                            float distance = calculateDistance(
+                                currentLat, currentLon,
+                                cmd.content.waypoint.latitude, cmd.content.waypoint.longitude);
+
+                            // Если достигли точки, переходим к следующей
+                            if (distance <= WAYPOINT_RADIUS_M)
+                            {
+                                currentWaypointIndex++;
+                                char logMsg[128];
+                                snprintf(logMsg, sizeof(logMsg),
+                                         "Waypoint %d reached, moving to next", currentWaypointIndex - 1);
+                                logEntry(logMsg, ENTITY_NAME, LogLevel::LOG_INFO);
+                            }
+                            // Если отклонение слишком большое, корректируем
+                            else if (prevLat != 0 && prevLon != 0) // Имеем предыдущие координаты
+                            {
+                                float deviation = calculateDeviation(
+                                    prevLat, prevLon,
+                                    cmd.content.waypoint.latitude, cmd.content.waypoint.longitude,
+                                    currentLat, currentLon);
+
+                                if (deviation > ALLOWED_DEVIATION_M)
+                                {
+                                    char logMsg[128];
+                                    snprintf(logMsg, sizeof(logMsg),
+                                             "Correcting trajectory (deviation: %.1fm)", deviation);
+                                    logEntry(logMsg, ENTITY_NAME, LogLevel::LOG_WARNING);
+
+                                    // Устанавливаем текущую точку маршрута как цель
+                                    changeWaypoint(
+                                        cmd.content.waypoint.latitude,
+                                        cmd.content.waypoint.longitude,
+                                        cmd.content.waypoint.altitude);
+                                }
+                            }
+                        }
+                    }
+
+                    // Сохраняем текущие координаты как предыдущие для следующей проверки
+                    prevLat = currentLat;
+                    prevLon = currentLon;
+                    prevAlt = currentAlt;
+                }
+                else
+                {
+                    logEntry("Failed to get coordinates - trajectory check skipped",
+                             ENTITY_NAME, LogLevel::LOG_WARNING);
                 }
             }
-            else
-            {
-                printf("Failed to receive mission update!\n");
-            }
-
-            lastMissionCheckTime = currentMissionTime; // Обновляем время проверки
         }
 
         usleep(100000);
