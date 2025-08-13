@@ -34,7 +34,7 @@ public:
             int samples = 16; // Можно увеличить для надёжности
             for (int s = 1; s < samples; ++s) {
                 double t = (double)s / samples;
-                Point mid(p.x + (node.x - p.x) * t, p.y + (node.y - p.y) * t);
+                Point mid(start.x + (stop.x - start.x) * t, start.y + (stop.y - start.y) * t);
                 for (const auto& poly : polys) {
                     if (point_in_poly_non_strict(mid, poly)) {
                         clear = false;
