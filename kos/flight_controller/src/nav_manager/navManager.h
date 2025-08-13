@@ -14,7 +14,38 @@ class NavManager {
 public:
     NavManager() {}
 
-
+    bool isVisible(const Point& start, const Point& stop) {
+        bool clear = true;
+        // 1. Проверка пересечения рёбер
+        for (const auto& poly : polys) {
+            int n = (int)poly.size();
+            for (int j = 0; j < n; ++j) {
+                const Point& a = poly[j];
+                const Point& b = poly[(j + 1) % n];
+                if (segments_strict_intersect(start, stop, a, b)) {
+                    clear = false;
+                    break;
+                }
+            }
+            if (!clear) break;
+        }
+        // 2. Семплирование вдоль сегмента: если любой семпл внутри полигона, считаем заблокированным
+        if (clear) {
+            int samples = 16; // Можно увеличить для надёжности
+            for (int s = 1; s < samples; ++s) {
+                double t = (double)s / samples;
+                Point mid(p.x + (node.x - p.x) * t, p.y + (node.y - p.y) * t);
+                for (const auto& poly : polys) {
+                    if (point_in_poly_non_strict(mid, poly)) {
+                        clear = false;
+                        break;
+                    }
+                }
+                if (!clear) break;
+            }
+        }
+        return clear;
+    }
 
     int calc_crc32(const char* data, size_t len) const {
         unsigned int crc = 0xFFFFFFFFU;
@@ -673,33 +704,55 @@ private:
     }
 
     int find_nearest_clear_node_id(const Point& p) const {
-        int best_id = -1;
-        double best_dist = std::numeric_limits<double>::infinity();
-        for (size_t i = 0; i < resNodes.size(); ++i) {
-            const Point& node = resNodes[i];
-            bool clear = true;
-            for (const auto& poly : polys) {
-                int n = (int)poly.size();
-                for (int j = 0; j < n; ++j) {
-                    const Point& a = poly[j];
-                    const Point& b = poly[(j + 1) % n];
-                    if (segments_strict_intersect(p, node, a, b)) {
+    // Новая проверка: если точка внутри или на границе любого полигона, сразу возвращаем -1
+    for (const auto& poly : polys) {
+        if (point_in_poly_non_strict(p, poly)) {
+            return -1;
+        }
+    }
+    int best_id = -1;
+    double best_dist = std::numeric_limits<double>::infinity();
+    for (size_t i = 0; i < resNodes.size(); ++i) {
+        const Point& node = resNodes[i];
+        bool clear = true;
+        // 1. Проверка пересечения рёбер
+        for (const auto& poly : polys) {
+            int n = (int)poly.size();
+            for (int j = 0; j < n; ++j) {
+                const Point& a = poly[j];
+                const Point& b = poly[(j + 1) % n];
+                if (segments_strict_intersect(p, node, a, b)) {
+                    clear = false;
+                    break;
+                }
+            }
+            if (!clear) break;
+        }
+        // 2. Семплирование вдоль сегмента: если любой семпл внутри полигона, считаем заблокированным
+        if (clear) {
+            int samples = 16; // Можно увеличить для надёжности
+            for (int s = 1; s < samples; ++s) {
+                double t = (double)s / samples;
+                Point mid(p.x + (node.x - p.x) * t, p.y + (node.y - p.y) * t);
+                for (const auto& poly : polys) {
+                    if (point_in_poly_non_strict(mid, poly)) {
                         clear = false;
                         break;
                     }
                 }
                 if (!clear) break;
             }
-            if (clear) {
-                double d = std::hypot(p.x - node.x, p.y - node.y);
-                if (d < best_dist) {
-                    best_dist = d;
-                    best_id = static_cast<int>(i);
-                }
+        }
+        if (clear) {
+            double d = std::hypot(p.x - node.x, p.y - node.y);
+            if (d < best_dist) {
+                best_dist = d;
+                best_id = static_cast<int>(i);
             }
         }
-        return best_id;
     }
+    return best_id;
+}
 
     double orient(const Point& a, const Point& b, const Point& c) const {
         return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
@@ -711,12 +764,17 @@ private:
             std::min(a.y, b.y) - eps <= p.y && p.y <= std::max(a.y, b.y) + eps);
     }
 
-    bool segments_strict_intersect(const Point& a, const Point& b, const Point& c, const Point& d, double eps = EPS) const {
-        double o1 = orient(a, b, c), o2 = orient(a, b, d);
-        double o3 = orient(c, d, a), o4 = orient(c, d, b);
-        // Исправлено: eps сравнивается с абсолютным значением произведения, чтобы избежать ошибок при малых числах
-        return (o1 * o2 < -std::max(eps * eps, 1e-20) && o3 * o4 < -std::max(eps * eps, 1e-20));
-    }
+   bool segments_strict_intersect(const Point& a, const Point& b, const Point& c, const Point& d, double eps = EPS) const {
+    double o1 = orient(a, b, c), o2 = orient(a, b, d);
+    double o3 = orient(c, d, a), o4 = orient(c, d, b);
+    // Строгое пересечение
+    if (o1 * o2 < -std::max(eps * eps, 1e-20) && o3 * o4 < -std::max(eps * eps, 1e-20))
+        return true;
+    // Дополнительно: касание
+    if (on_segment(a, b, c, eps) || on_segment(a, b, d, eps) || on_segment(c, d, a, eps) || on_segment(c, d, b, eps))
+        return true;
+    return false;
+}
 
     bool point_in_poly_non_strict(const Point& p, const Polygon& poly, double eps = EPS) const {
         bool inside = false;
