@@ -91,16 +91,19 @@ int sendAutopilotCommand(AutopilotCommand command, uint8_t* rawBytes, int32_t by
 void listenAutopilot() {
     uint8_t command;
     while (true) {
-        getAutopilotCommand(command);
+        if (!getAutopilotCommand(command))
+            continue;
 
         if (command == AutopilotCommand::ArmRequest)
             armIsRequested = true;
         else if (command == AutopilotCommand::AutopilotEvent) {
             uint32_t dataLength;
-            getAutopilotBytes(sizeof(uint32_t), (uint8_t*)(&dataLength));
+            if (!getAutopilotBytes(sizeof(uint32_t), (uint8_t*)(&dataLength)))
+                continue;
 
             uint8_t* data = (uint8_t*)malloc(dataLength);
-            getAutopilotBytes(dataLength, data);
+            if (!getAutopilotBytes(dataLength, data))
+                continue;
 
             char message[256] = {0};
             switch (data[0]) {
