@@ -61,6 +61,11 @@ def auth_handler(id: str):
         uav_entity.kill_switch_state = False
         add_changes(uav_entity)
 
+    mission_entity = get_entity_by_key(Mission, id)
+    if mission_entity:
+        mission_entity.is_accepted = False
+        add_changes(mission_entity)
+
     if id in context.permission_revoked_uavs:
         context.permission_revoked_uavs.remove(id)
     if id in context.connection_broken_uavs:
